@@ -57,7 +57,7 @@ export function Hero() {
       <div className="relative z-10 flex flex-col items-center justify-center px-6 w-full h-full">
         <FadeInSection className="animate-in fade-in zoom-in duration-1000">
           <div className="relative w-[120px] h-[120px] md:w-[180px] md:h-[180px]">
-            <Image src="https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/logo.png"
+            <Image src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/logo.png"
               alt="Saleh Al-Dirazi Logo"
               fill
               className="object-contain drop-shadow-[0_0_20px_rgba(197,160,89,0.3)]"
