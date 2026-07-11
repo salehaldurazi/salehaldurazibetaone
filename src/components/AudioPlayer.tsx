@@ -69,7 +69,7 @@ export function AudioPlayer({
         artist: "صالح الدرازي",
         album: track.album || "إصدار رسمي",
         artwork: [
-          { src: 'https://picsum.photos/seed/saleh-meta/512/512', sizes: '512x512', type: 'image/png' },
+          { src: 'https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png', sizes: '512x512', type: 'image/png' },
         ]
       });
 
