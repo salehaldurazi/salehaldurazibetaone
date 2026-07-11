@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev', // ضع الرابط الذي ظهر لك هنا (بدون https://)
+        hostname: 'pub-4e74282116ce42688fee67ca11592467.r2.dev', // ضع الرابط الذي ظهر لك هنا (بدون https://)
         port: '',
         pathname: '/**',
       },
