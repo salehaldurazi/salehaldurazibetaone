@@ -165,7 +165,7 @@ export function AudioPlayer({
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-primary/20">
                 <Image
-                  src="https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/cover.png"
+                  src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png"
                   alt="غلاف"
                   fill
                   className="object-cover"
@@ -185,7 +185,7 @@ export function AudioPlayer({
               <div className="flex items-center gap-2.5 text-right min-w-0">
                 <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/30 shadow-2xl">
                   <Image
-                    src="https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/cover.png"
+                    src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png"
                     alt="غلاف"
                     fill
                     className="object-cover"
