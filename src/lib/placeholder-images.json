@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "أجواء روحية - صالح الدرازي",
+      "imageUrl": "https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/1.PNG",
+      "imageHint": "spiritual mosque"
+    },
+    {
+      "id": "hero-2",
+      "description": "تلاوة وخشوع - صالح الدرازي",
+      "imageUrl": "https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/2.PNG",
+      "imageHint": "islamic architecture"
+    },
+    {
+      "id": "hero-3",
+      "description": "إرث فني - صالح الدرازي",
+      "imageUrl": "https://pub-5b50cbef7171402cbdd55b7d1116f643.r2.dev/img/3.PNG",
+      "imageHint": "arabic pattern"
+    }
+  ]
+}
