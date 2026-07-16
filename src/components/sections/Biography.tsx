@@ -2,11 +2,9 @@
 "use client";
 
 import { FadeInSection } from "../FadeInSection";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Image from "next/image";
 
 export function Biography() {
-  const bioImg = PlaceHolderImages.find(img => img.id === 'bio-portrait');
 
   return (
     <section id="biography" className="py-32 scroll-mt-nav container max-w-5xl px-6 mx-auto">

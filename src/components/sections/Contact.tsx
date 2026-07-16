@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase-js";
 import { toast } from "@/hooks/use-toast";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import {
   Instagram,
   Youtube,
@@ -84,7 +85,7 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="py-12 md:py-24 scroll-mt-nav relative overflow-hidden bg-[#0a0a09]">
+    <section id="contact" className="py-12 md:py-24 scroll-mt-nav relative overflow-hidden bg-background">
       {/* Background Decorative Element */}
       <div className="absolute bottom-0 left-0 w-full h-[400px] bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
 
@@ -136,7 +137,7 @@ export function Contact() {
 
           {/* Contact Form - Increased Padding and Spacing */}
           <FadeInSection delay={200} className="w-full">
-            <form onSubmit={handleSubmit} className="w-full space-y-5 bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-primary/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)] text-right relative overflow-hidden group">
+            <form onSubmit={handleSubmit} className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 shadow-[0_30px_80px_rgba(0,0,0,0.08)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.5)] text-right relative overflow-hidden group">
               <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/20 transition-all duration-700" />
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -146,7 +147,7 @@ export function Contact() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={loading}
-                    className="bg-background/40 border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-white"
+                    className="bg-card/80 dark:bg-background/40 border-border dark:border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-foreground"
                     dir="rtl"
                   />
                 </div>
@@ -157,7 +158,7 @@ export function Contact() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="bg-background/40 border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-white"
+                    className="bg-card/80 dark:bg-background/40 border-border dark:border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-foreground"
                     dir="rtl"
                   />
                 </div>
@@ -169,7 +170,7 @@ export function Contact() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   disabled={loading}
-                  className="bg-background/40 border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-white"
+                  className="bg-card/80 dark:bg-background/40 border-border dark:border-primary/5 focus:border-primary/40 rounded-xl h-12 text-xs md:text-sm text-right transition-all text-foreground"
                   dir="rtl"
                 />
               </div>
@@ -180,7 +181,7 @@ export function Contact() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   disabled={loading}
-                  className="bg-background/40 border-primary/5 focus:border-primary/40 rounded-xl min-h-[120px] text-xs md:text-sm text-right transition-all resize-none text-white"
+                  className="bg-card/80 dark:bg-background/40 border-border dark:border-primary/5 focus:border-primary/40 rounded-xl min-h-[120px] text-xs md:text-sm text-right transition-all resize-none text-foreground"
                   dir="rtl"
                 />
               </div>
@@ -188,7 +189,7 @@ export function Contact() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl tracking-[0.2em] font-bold shadow-xl shadow-primary/10 transition-all uppercase text-[10px] md:text-xs mt-2 flex items-center justify-center"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold shadow-xl shadow-primary/10 transition-all uppercase text-[10px] md:text-xs mt-2 flex items-center justify-center"
               >
                 {loading ? (
                   <>
@@ -221,10 +222,13 @@ export function Contact() {
           </FadeInSection>
         </div>
 
-        <footer className="mt-16 pt-10 border-t border-primary/5 text-center px-6">
-          <p className="text-center py-50 text-foreground/20 text-xs tracking-widest font-Extralight">
-            جميع الحقوق محفوظة © {new Date().getFullYear()} | صالح الدرازي
-          </p>
+        <footer className="mt-16 pt-10 border-t border-primary/5 px-6">
+          <div className="flex items-center justify-center gap-3 py-6">
+            <p className="text-foreground/30 text-xs tracking-widest font-light">
+              جميع الحقوق محفوظة © {new Date().getFullYear()} | صالح الدرازي
+            </p>
+            <ThemeSwitcher />
+          </div>
         </footer>
       </div>
     </section>

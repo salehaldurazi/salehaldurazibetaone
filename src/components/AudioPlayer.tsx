@@ -154,13 +154,13 @@ export function AudioPlayer({
 
       <div className={cn(
         "w-full max-w-md relative overflow-hidden transition-all duration-500 ease-in-out rounded-[1.5rem]",
-        "bg-black/90 backdrop-blur-3xl border border-primary/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
+        "bg-card/90 dark:bg-black/90 backdrop-blur-3xl border border-primary/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
         isMinimized ? "h-14" : "h-[120px]" // ارتفاع المشغل (h-[120px] للوضع الكامل)
       )}>
         {isMinimized ? (
           <button
             onClick={() => setIsMinimized(false)}
-            className="absolute inset-0 z-10 flex items-center justify-between px-5 w-full h-full text-right hover:bg-white/5 transition-colors group"
+            className="absolute inset-0 z-10 flex items-center justify-between px-5 w-full h-full text-right hover:bg-foreground/5 transition-colors group"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-primary/20">
@@ -172,7 +172,7 @@ export function AudioPlayer({
                 />
               </div>
               <div className="flex flex-col min-w-0 text-right">
-                <span className="text-[11px] font-bold text-white truncate leading-none">{track.title}</span>
+                <span className="text-[11px] font-bold text-foreground truncate leading-none">{track.title}</span>
                 <span className="text-[9px] text-primary/70 truncate font-light mt-0.5">{track.album || "صالح الدرازي"}</span>
               </div>
             </div>
@@ -192,7 +192,7 @@ export function AudioPlayer({
                   />
                 </div>
                 <div className="min-w-0 text-right">
-                  <h4 className="text-[12px] font-bold text-white truncate leading-tight">
+                  <h4 className="text-[12px] font-bold text-foreground truncate leading-tight">
                     {track.title}
                   </h4>
                   <p className="text-[9px] text-primary/80 font-medium truncate">
@@ -206,7 +206,7 @@ export function AudioPlayer({
                   onClick={() => setIsMinimized(true)}
                   variant="ghost"
                   size="icon"
-                  className="w-7 h-7 rounded-full text-white/30 hover:text-primary hover:bg-primary/10"
+                  className="w-7 h-7 rounded-full text-foreground/30 hover:text-primary hover:bg-primary/10"
                   title="تصغير"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
@@ -215,7 +215,7 @@ export function AudioPlayer({
                   variant="ghost"
                   size="icon"
                   onClick={onClose}
-                  className="w-7 h-7 rounded-full text-white/30 hover:text-destructive hover:bg-destructive/10"
+                  className="w-7 h-7 rounded-full text-foreground/30 hover:text-destructive hover:bg-destructive/10"
                   title="إغلاق"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -233,8 +233,8 @@ export function AudioPlayer({
                   className="cursor-pointer"
                 />
                 <div className="flex items-center justify-between px-0.5 mt-1">
-                  <span className="text-[8px] text-white/40 font-medium tabular-nums">{formatTime(currentTime)}</span>
-                  <span className="text-[8px] text-white/40 font-medium tabular-nums">{formatTime(duration)}</span>
+                  <span className="text-[8px] text-foreground/40 font-medium tabular-nums">{formatTime(currentTime)}</span>
+                  <span className="text-[8px] text-foreground/40 font-medium tabular-nums">{formatTime(duration)}</span>
                 </div>
               </div>
 

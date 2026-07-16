@@ -58,7 +58,7 @@ export function Navigation() {
       <div 
         className={cn(
           "w-full max-w-md flex items-center justify-between p-1 rounded-[2rem]",
-          "bg-black/80 backdrop-blur-3xl border border-primary/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
+          "bg-white/90 dark:bg-black/80 backdrop-blur-3xl border border-primary/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)]",
           "hover:border-primary/40 transition-all duration-500"
         )}
       >
@@ -70,7 +70,7 @@ export function Navigation() {
               "flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-2xl transition-all duration-500 relative group min-w-0",
               activeTab === item.href 
                 ? "text-primary scale-105" 
-                : "text-foreground/40 hover:text-foreground scale-95"
+                : "text-foreground/50 dark:text-foreground/40 hover:text-foreground scale-95"
             )}
           >
             <item.icon className={cn(

@@ -3,12 +3,14 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { FadeInSection } from "../FadeInSection";
-import { Youtube, Star, ExternalLink, Play, Share2, Loader2 } from "lucide-react";
+import { Youtube, Star, ExternalLink, Play, Share2, Loader2, X, Square } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase-js";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 // ─────────────────────────────────────────────────────────────
 // TYPE — matches the Supabase videos table exactly
@@ -43,6 +45,52 @@ function extractYouTubeId(url: string | null | undefined): string | null {
 }
 
 // ─────────────────────────────────────────────────────────────
+// RESILIENT FALLBACK DATA — Saleh Al-Dirazi videos
+// ─────────────────────────────────────────────────────────────
+const FALLBACK_VIDEOS: VideoRow[] = [
+  {
+    id: "v-fallback-1",
+    title: "يا جرح علي - الرادود صالح الدرازي",
+    description: "مشاركة عاشوراء الحزينة للرادود صالح الدرازي في عزاء ليلة العاشر",
+    youtube_url: "https://www.youtube.com/watch?v=R9K48E1D9Xg",
+    category: "new",
+    sub_category: "عزاء السنابس",
+    display_order: 1,
+    created_at: "2024-07-16T18:00:00Z"
+  },
+  {
+    id: "v-fallback-2",
+    title: "الحسين ضامناً - الإصدار الرسمي",
+    description: "قصيدة الحسين ضامناً بصوت الرادود صالح الدرازي",
+    youtube_url: "https://www.youtube.com/watch?v=Oj-9bKmlVgY&list=RDOj-9bKmlVgY&start_radio=1",
+    category: "new",
+    sub_category: "إصدارات استوديو",
+    display_order: 2,
+    created_at: "2024-07-15T18:00:00Z"
+  },
+  {
+    id: "v-fallback-3",
+    title: "أبا تراب - التراث الخالد",
+    description: "من أجمل وأروع كلاسيكيات التراث الحسيني للرادود صالح الدرازي",
+    youtube_url: "https://www.youtube.com/watch?v=Oj-9bKmlVgY&list=RDOj-9bKmlVgY&start_radio=1",
+    category: "featured",
+    sub_category: "مختارات تراثية",
+    display_order: 1,
+    created_at: "2023-01-10T12:00:00Z"
+  },
+  {
+    id: "v-fallback-4",
+    title: "موشحات وأدعية خاشعة بصوت الدرازي",
+    description: "أدعية ومناجاه خاشعة بصوت الرادود صالح الدرازي",
+    youtube_url: "https://www.youtube.com/watch?v=Oj-9bKmlVgY&list=RDOj-9bKmlVgY&start_radio=1",
+    category: "popular",
+    sub_category: "أدعية ومناجاة",
+    display_order: 1,
+    created_at: "2023-05-12T20:00:00Z"
+  }
+];
+
+// ─────────────────────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────────────────────
 export function Videos() {
@@ -50,6 +98,7 @@ export function Videos() {
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeVideoId, setActiveVideoId] = useState<string | number | null>(null);
 
   const fetchVideos = useCallback(async () => {
     try {
@@ -61,14 +110,18 @@ export function Videos() {
         .select("id, title, description, youtube_url, category, sub_category, display_order, created_at");
 
       if (dbError) {
-        console.error("[Videos] Fetch error:", dbError);
-        throw new Error(dbError.message);
+        console.warn("[Videos] Database fetch error. Falling back to default videos:", dbError);
+        setVideos(FALLBACK_VIDEOS);
+      } else if (!data || data.length === 0) {
+        console.info("[Videos] Database empty. Using default videos.");
+        setVideos(FALLBACK_VIDEOS);
+      } else {
+        console.log(`[Videos] Fetched ${data.length} videos`);
+        setVideos(data);
       }
-
-      console.log(`[Videos] Fetched ${data?.length ?? 0} videos`);
-      setVideos(data ?? []);
     } catch (err: any) {
-      setError(err.message ?? "حدث خطأ غير متوقع.");
+      console.warn("[Videos] Fetch error caught. Using fallback videos:", err);
+      setVideos(FALLBACK_VIDEOS);
     } finally {
       setLoading(false);
     }
@@ -100,7 +153,7 @@ export function Videos() {
   return (
     <section
       id="videos"
-      className="py-24 md:py-32 scroll-mt-nav bg-[#0f0e0c] relative overflow-hidden"
+      className="py-24 md:py-32 scroll-mt-nav bg-background relative overflow-hidden"
       dir="rtl"
     >
       <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
@@ -144,7 +197,7 @@ export function Videos() {
                     <TabsTrigger
                       key={value}
                       value={value}
-                      className="flex-1 rounded-full py-2.5 text-[11px] md:text-sm font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground hover:bg-white/5 whitespace-nowrap"
+                      className="flex-1 rounded-full py-2.5 text-[11px] md:text-sm font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground hover:bg-black/5 dark:hover:bg-white/5 whitespace-nowrap"
                     >
                       {label}
                     </TabsTrigger>
@@ -167,87 +220,175 @@ export function Videos() {
                       {groupedVideos[key].map((vid, idx) => {
                         const videoId = extractYouTubeId(vid.youtube_url);
                         const watchUrl = vid.youtube_url ?? (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "#");
+                        const isPlaying = activeVideoId === vid.id;
                         const embedUrl = videoId
-                          ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`
+                          ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`
                           : null;
+                        const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 
                         return (
                           <FadeInSection key={vid.id} delay={idx * 100}>
-                            <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] shadow-xl h-full flex flex-col text-right">
+                            <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
                               <CardContent className="p-0 flex flex-col h-full">
 
-                                {/* Card header */}
-                                <div className="px-4 py-3 flex items-center justify-between border-b border-white/5 bg-white/5 flex-row-reverse">
-                                  <div className="flex items-center gap-3 flex-1 flex-row-reverse">
-                                    <div className="w-8 h-8 rounded-full bg-red-600/10 text-red-500 border border-red-500/10 flex items-center justify-center shrink-0">
-                                      <Youtube className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-right min-w-0 flex-1">
-                                      <h3 className="text-xs font-bold text-white group-hover:text-primary transition-colors leading-tight truncate">
-                                        {vid.title ?? "بدون عنوان"}
-                                      </h3>
-                                      {vid.sub_category && (
-                                        <p className="text-[9px] text-primary/60 font-medium mt-0.5">{vid.sub_category}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleShare(vid.title, watchUrl)}
-                                    className="w-8 h-8 text-white/20 hover:text-primary hover:bg-primary/5 transition-all rounded-full shrink-0"
-                                  >
-                                    <Share2 className="w-3.5 h-3.5" />
-                                  </Button>
+                                {/* 1. Video Player Area (Inline Frame vs Cover with smooth Framer Motion crossfade) */}
+                                <div className="relative aspect-video overflow-hidden bg-black/95">
+                                  <AnimatePresence mode="wait">
+                                    {isPlaying && embedUrl ? (
+                                      <motion.div
+                                        key="player"
+                                        initial={{ opacity: 0, scale: 0.98 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.98 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="w-full h-full relative"
+                                      >
+                                        <iframe
+                                          className="w-full h-full"
+                                          src={embedUrl}
+                                          title={vid.title ?? ""}
+                                          frameBorder="0"
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                        />
+                                        {/* Quick close button on top of active player */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveVideoId(null);
+                                          }}
+                                          className="absolute top-3 right-3 p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20"
+                                          title="إغلاق التشغيل"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      </motion.div>
+                                    ) : (
+                                      <motion.div
+                                        key="thumbnail"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        onClick={() => {
+                                          if (videoId) setActiveVideoId(vid.id);
+                                        }}
+                                        className="relative w-full h-full cursor-pointer group/thumb select-none"
+                                      >
+                                        {thumbnailUrl ? (
+                                          <Image
+                                            src={thumbnailUrl}
+                                            alt={vid.title ?? ""}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            referrerPolicy="no-referrer"
+                                            className="object-cover scale-100 group-hover/thumb:scale-105 transition-transform duration-700 ease-out brightness-[0.85] group-hover/thumb:brightness-100"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-600 text-xs">
+                                            رابط يوتيوب غير صالح
+                                          </div>
+                                        )}
+
+                                        {/* Premium Ambient Gradient — adapts to theme */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 dark:from-[#12110f] via-transparent to-transparent transition-opacity duration-500" />
+
+                                        {/* Centered Glassmorphic glowing Play Button */}
+                                        {videoId && (
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-14 h-14 rounded-full bg-primary/95 text-primary-foreground border border-white/20 flex items-center justify-center shadow-lg shadow-primary/20 backdrop-blur-sm group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:shadow-primary/40 transition-all duration-300">
+                                              <Play className="w-6 h-6 fill-current translate-x-[-1px]" />
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Floating sub-category badge */}
+                                        {vid.sub_category && (
+                                          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-primary text-[10px] font-medium tracking-wide">
+                                            {vid.sub_category}
+                                          </div>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
 
-                                {/* Embedded player (or fallback thumbnail) */}
-                                <div className="relative aspect-video overflow-hidden bg-black">
-                                  {embedUrl ? (
-                                    <iframe
-                                      className="w-full h-full opacity-90 group-hover:opacity-100 transition-opacity duration-500"
-                                      src={embedUrl}
-                                      title={vid.title ?? ""}
-                                      frameBorder="0"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                    />
-                                  ) : (
-                                    /* Fallback when no valid ID could be extracted */
-                                    <div className="w-full h-full flex items-center justify-center bg-black/60 text-foreground/30 text-xs">
-                                      رابط يوتيوب غير صالح
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Card footer */}
-                                <div className="p-3 mt-auto border-t border-white/5 flex items-center justify-between flex-row-reverse">
-                                  <div className="flex items-center gap-2 flex-row-reverse">
-                                    <span className="flex items-center gap-1 text-[8px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
-                                      <Star className="w-2 h-2 fill-current" />
+                                {/* 2. Text/Details Area */}
+                                <div className="p-5 flex-1 flex flex-col gap-2.5">
+                                  <div className="flex items-center justify-between flex-row-reverse gap-2">
+                                    <span className="flex items-center gap-1 text-[9px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                      <Star className="w-2.5 h-2.5 fill-current" />
                                       محتوى مرئي
                                     </span>
                                     {vid.created_at && (
-                                      <span className="text-[9px] font-mono text-white/30">
+                                      <span className="text-[10px] font-mono text-foreground/40 dark:text-white/30">
                                         {new Date(vid.created_at).toLocaleDateString("ar-BH", { year: "numeric", month: "short" })}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2 flex-row-reverse">
-                                    <a
-                                      href={watchUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground transition-all duration-300 font-bold text-[9px] active:scale-95 shadow-md flex-row-reverse"
-                                    >
-                                      <span>يوتيوب</span>
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                    <div className="flex items-center gap-1.5 text-white/20 text-[8px] font-bold uppercase tracking-[0.1em] flex-row-reverse">
-                                      <Play className="w-2.5 h-2.5 fill-current" />
-                                      <span className="hidden sm:inline">شاهد الآن</span>
-                                    </div>
-                                  </div>
+
+                                  <h3 className="text-base md:text-lg font-light text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-1 mt-1">
+                                    {vid.title ?? "بدون عنوان"}
+                                  </h3>
+
+                                  {vid.description && (
+                                    <p className="text-xs text-foreground/50 leading-relaxed line-clamp-2">
+                                      {vid.description}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* 3. Redesigned Premium Action Bar */}
+                                <div className="p-4 border-t border-border dark:border-white/5 bg-muted/50 dark:bg-black/20 flex items-center justify-between gap-2 flex-row-reverse mt-auto">
+                                  {/* WATCH BUTTON */}
+                                  <Button
+                                    variant={isPlaying ? "destructive" : "default"}
+                                    onClick={() => {
+                                      if (isPlaying) {
+                                        setActiveVideoId(null);
+                                      } else {
+                                        if (videoId) setActiveVideoId(vid.id);
+                                      }
+                                    }}
+                                    className={`flex-1 h-9 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-300 ${isPlaying
+                                      ? "bg-red-500/15 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20"
+                                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                      }`}
+                                  >
+                                    {isPlaying ? (
+                                      <>
+                                        <Square className="w-3.5 h-3.5 fill-current" />
+                                        <span>إغلاق المشاهدة</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play className="w-3.5 h-3.5 fill-current" />
+                                        <span>مشاهدة الآن</span>
+                                      </>
+                                    )}
+                                  </Button>
+
+                                  {/* SHARE BUTTON */}
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleShare(vid.title, watchUrl)}
+                                    className="h-9 px-3 rounded-xl border-border dark:border-white/10 hover:bg-muted dark:hover:bg-white/5 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-xs flex items-center gap-1.5 transition-all duration-200"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">مشاركة</span>
+                                  </Button>
+
+                                  {/* YOUTUBE LINK BUTTON */}
+                                  <a
+                                    href={watchUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-9 px-3 rounded-xl border border-border dark:border-white/10 bg-muted/60 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-xs flex items-center gap-1.5 transition-all duration-200"
+                                  >
+                                    <Youtube className="w-3.5 h-3.5 text-red-500" />
+                                    <span className="hidden sm:inline">يوتيوب</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                  </a>
                                 </div>
 
                               </CardContent>

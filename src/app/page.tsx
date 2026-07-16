@@ -25,6 +25,54 @@ export default function Home() {
   const [currentPlaylist, setCurrentPlaylist] = useState<Track[]>([]);
   const [queue, setQueue] = useState<Track[]>([]);
 
+  // Real-time tracking of track plays (supporting click, next, prev, and autoplay)
+  React.useEffect(() => {
+    const currentTrack = currentTrackIndex >= 0 ? currentPlaylist[currentTrackIndex] : null;
+    if (currentTrack) {
+      const incrementPlay = async () => {
+        try {
+          const trackIdStr = String(currentTrack.id);
+          const cooldownKey = `track-cooldown:${trackIdStr}:listens`;
+          const lastAction = localStorage.getItem(cooldownKey);
+          const now = Date.now();
+          if (lastAction && now - parseInt(lastAction) < 10000) {
+            return; // local debounce to prevent rapid spam clicks
+          }
+          localStorage.setItem(cooldownKey, String(now));
+
+          if (trackIdStr.startsWith("t-fallback-")) {
+            // Local fallback simulation
+            const event = new CustomEvent("track-stats-updated", {
+              detail: { trackId: trackIdStr, type: "listens" },
+            });
+            window.dispatchEvent(event);
+            return;
+          }
+
+          // Call Supabase RPC to safely increment the database listens count
+          const { error } = await supabase.rpc("increment_track_stat", {
+            row_id: trackIdStr,
+            column_name: "listens_count"
+          });
+
+          if (error) {
+            console.error("Error updating listens count in database:", error);
+            return;
+          }
+
+          // Dispatch a real-time global event to sync UI counts in all components
+          const event = new CustomEvent("track-stats-updated", {
+            detail: { trackId: trackIdStr, type: "listens" },
+          });
+          window.dispatchEvent(event);
+        } catch (err) {
+          console.error("Error triggering play stats from player:", err);
+        }
+      };
+      incrementPlay();
+    }
+  }, [currentTrackIndex, currentPlaylist]);
+
   const handlePlay = (track: Track, playlist: Track[]) => {
     setCurrentPlaylist(playlist);
     const index = playlist.findIndex(t => t.id === track.id);
@@ -90,7 +138,7 @@ export default function Home() {
   const currentTrack = currentTrackIndex >= 0 ? currentPlaylist[currentTrackIndex] : null;
 
   return (
-    <main className="relative bg-[#0f0e0c] text-foreground min-h-screen pb-32">
+    <main className="relative bg-background text-foreground min-h-screen pb-32">
       <Navigation />
 
       <div id="home"><Hero /></div>
