@@ -193,7 +193,7 @@ export function Contact() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 ml-3 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 ml-3 animate-spin" />
                     جاري الإرسال...
                   </>
                 ) : (
@@ -224,7 +224,7 @@ export function Contact() {
 
         <footer className="mt-16 pt-10 border-t border-primary/5 px-6">
           <div className="flex items-center justify-center gap-3 py-6">
-            <p className="text-foreground/30 text-xs tracking-widest font-light">
+            <p className="text-foreground/30 text-[0.65rem] tracking-widest font-light">
               جميع الحقوق محفوظة © {new Date().getFullYear()} | صالح الدرازي
             </p>
             <ThemeSwitcher />
