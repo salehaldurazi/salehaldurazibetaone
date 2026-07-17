@@ -160,9 +160,9 @@ export function Videos() {
 
       <div className="container max-w-6xl px-6 mx-auto relative z-10">
         <FadeInSection className="text-center mb-10 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-light text-primary">الرحلة البصرية</h2>
+          <h2 className="text-4xl md:text-5xl font-light text-primary">المرئيات</h2>
           <p className="text-primary uppercase text-xs">
-            توثيق لحظات التواصل الروحي
+            قسم خاص للمرئيات
           </p>
         </FadeInSection>
 
@@ -188,7 +188,7 @@ export function Videos() {
               className="w-full"
             >
               <div className="flex flex-col items-center w-full mb-8">
-                <TabsList className="w-full bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 shadow-2xl overflow-hidden">
+                <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 shadow-2xl overflow-hidden">
                   {[
                     { value: "featured", label: "مختارات" },
                     { value: "popular", label: "الأكثر مشاهدة" },
