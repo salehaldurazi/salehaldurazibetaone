@@ -431,14 +431,20 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   }, [filteredAndSortedAlbums, visibleCount]);
 
   /**
-   * معالجة إجراءات المشاركة والتحميل
-   */
+     * معالجة إجراءات المشاركة والتحميل
+     */
   const handleAction = async (action: string, track: any) => {
+    // جلب اسم الألبوم لاستخدامه في التحميل والمشاركة
+    const album = liveAlbums.find(a => String(a.id) === String(track.album_id));
+    const albumName = album ? album.title : "ألبوم";
+    const fullName = `${albumName} - ${track.title}`;
+
+    // 1. كود المشاركة المطور
     if (action === "share") {
       const shareUrl = `${window.location.origin}/?track=${track.id}`;
       const shareData = {
-        title: track.title,
-        text: `استمع إلى "${track.title}" بصوت الرادود صالح الدرازي عبر أناقة الدرازي`,
+        title: fullName, // وضعنا الاسم المنسق هنا
+        text: `استمع إلى "${fullName}" بصوت الرادود صالح الدرازي عبر أناقة الدرازي`,
         url: shareUrl,
       };
 
@@ -455,16 +461,22 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       }
     }
 
+    // 2. كود التحميل المطور
     if (action === "download") {
       if (track.audio_url) {
+        const fileName = `${fullName}.mp3`;
+
         try {
+          const response = await fetch(track.audio_url);
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = track.audio_url;
-          link.setAttribute('download', `${track.title}.mp3`);
-          link.setAttribute('target', '_blank');
+          link.href = downloadUrl;
+          link.setAttribute('download', fileName);
           document.body.appendChild(link);
           link.click();
-          document.body.removeChild(link);
+          link.remove();
+          window.URL.revokeObjectURL(downloadUrl);
         } catch (err) {
           window.open(track.audio_url, "_blank");
         }
