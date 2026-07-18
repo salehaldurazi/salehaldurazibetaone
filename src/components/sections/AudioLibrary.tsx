@@ -34,7 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, normalizeArabic } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
@@ -212,6 +212,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [expandedAlbumId, setExpandedAlbumId] = useState<string | number | null>(null);
+  const [sharedAlbumId, setSharedAlbumId] = useState<string | number | null>(null);
 
   // Reset visibleCount when activeCategory or searchQuery changes
   useEffect(() => {
@@ -241,6 +242,9 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       }
 
       if (foundTrack && foundAlbum) {
+        // Set the shared album ID state so sorting logic puts it at the top
+        setSharedAlbumId(foundAlbum.id);
+
         // 1. تفعيل قسم الألبوم المناسب
         setActiveCategory(foundAlbum.category);
 
@@ -269,6 +273,12 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           const element = document.getElementById(`album-${foundAlbum.id}`);
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            // Fallback: scroll to the audio library section
+            const audioSection = document.getElementById("audio");
+            if (audioSection) {
+              audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
           }
         }, 600);
 
@@ -483,15 +493,29 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     let result = liveAlbums.filter(album => album.category === activeCategory);
 
     if (searchQuery) {
-      result = result.map(album => ({
-        ...album,
-        tracks: album.tracks.filter(track =>
-          track.title.includes(searchQuery) || album.title.includes(searchQuery)
-        )
-      })).filter(album => album.tracks.length > 0 || album.title.includes(searchQuery));
+      const normalizedQuery = normalizeArabic(searchQuery);
+      result = result
+        .map(album => {
+          const albumMatches =
+            normalizeArabic(album.title).includes(normalizedQuery) ||
+            (album.year && normalizeArabic(String(album.year)).includes(normalizedQuery));
+
+          return {
+            ...album,
+            tracks: album.tracks.filter(track =>
+              albumMatches || normalizeArabic(track.title).includes(normalizedQuery)
+            ),
+          };
+        })
+        .filter(
+          album =>
+            album.tracks.length > 0 ||
+            normalizeArabic(album.title).includes(normalizedQuery) ||
+            (album.year && normalizeArabic(String(album.year)).includes(normalizedQuery))
+        );
     }
 
-    return [...result].sort((a, b) => {
+    const sortedRest = [...result].sort((a, b) => {
       switch (sortBy) {
         case "newest":
           return Number(b.year) - Number(a.year);
@@ -509,7 +533,18 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           return 0;
       }
     });
-  }, [searchQuery, activeCategory, liveAlbums, sortBy]);
+
+    // If there is a sharedAlbumId, dynamically prioritize it to be the first item in the list
+    if (sharedAlbumId) {
+      const idx = sortedRest.findIndex(album => String(album.id) === String(sharedAlbumId));
+      if (idx > -1) {
+        const [sharedAlbum] = sortedRest.splice(idx, 1);
+        return [sharedAlbum, ...sortedRest];
+      }
+    }
+
+    return sortedRest;
+  }, [searchQuery, activeCategory, liveAlbums, sortBy, sharedAlbumId]);
 
   const visibleAlbums = useMemo(() => {
     return filteredAndSortedAlbums.slice(0, visibleCount);
@@ -1001,7 +1036,7 @@ function AlbumGrid({
                       <AccordionItem value="tracks" className="border-none">
                         <AccordionTrigger className="hover:no-underline py-2.5 px-4 rounded-xl hover:bg-primary/5 transition-all text-[9px] uppercase opacity-70 hover:opacity-100 flex gap-2 flex-row-reverse group/trigger">
                           <div className="flex items-center gap-2 flex-row-reverse">
-                            <span className="group-data-[state=open]/text-primary uppercase text-xs">تصفح القصائد</span>
+                            <span className="group-data-[state=open]/text-primary uppercase text-[11px] md:text-sm font-light">تصفح القصائد</span>
                             <span className="w-5 h-5 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-[9px] border border-primary/10">{album.tracks ? album.tracks.length : 0}</span>
                           </div>
                         </AccordionTrigger>
