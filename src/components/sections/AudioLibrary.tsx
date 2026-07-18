@@ -49,6 +49,7 @@ interface Track {
   order?: number;
   listens_count?: number;
   downloads_count?: number;
+  is_visible?: boolean;
 }
 
 /**
@@ -60,6 +61,7 @@ interface Album {
   year: string | number;
   category: string;
   tracks: Track[];
+  is_visible?: boolean;
 }
 
 interface AudioLibraryProps {
@@ -309,10 +311,16 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
           if (tracksError) throw tracksError;
 
-          const fullAlbumsStructure = albumsData.map((album: any) => {
-            const albumTracks = tracksData
-              ? tracksData.filter((track: any) => String(track.album_id) === String(album.id))
-              : [];
+          // Filter out hidden albums (defaulting to visible if column does not exist)
+          const visibleAlbumsData = albumsData.filter((album: any) => album.is_visible !== false);
+
+          // Filter out hidden tracks (defaulting to visible if column does not exist)
+          const visibleTracksData = tracksData
+            ? tracksData.filter((track: any) => track.is_visible !== false)
+            : [];
+
+          const fullAlbumsStructure = visibleAlbumsData.map((album: any) => {
+            const albumTracks = visibleTracksData.filter((track: any) => String(track.album_id) === String(album.id));
 
             // إسناد إحصائيات استماع وتحميل من قاعدة البيانات (ندعم كلاً من play_count/download_count و listens_count/downloads_count للتوافق التام)
             const tracksWithStats = albumTracks.map((track: any) => {
@@ -1011,15 +1019,15 @@ function AlbumGrid({
                                   >
                                     <Play className="w-3.5 h-3.5 fill-current" />
                                   </Button>
-                                  <div className="flex items-center justify-center min-w-[1.8rem] h-6 rounded-md bg-primary/5 border border-primary/10">
-                                    <span className="text-[10px] font-extralight text-primary/60">
+                                  <div className="flex items-center justify-center min-w-[1.8rem] h-6 rounded-md bg-white dark:bg-primary/5 border border-primary/10">
+                                    <span className="text-[10px] font-light text-primary/60">
                                       {(track.order || trackIdx + 1).toString().padStart(2, '0')}
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="min-w-0 text-right flex-1 cursor-default">
-                                  <span className="text-[11px] md:text-sm font-extralight block truncate leading-tight group-hover/item:text-primary transition-colors text-foreground">
+                                  <span className="text-[11px] md:text-sm font-light block truncate leading-tight group-hover/item:text-primary transition-colors text-foreground">
                                     {track.title}
                                   </span>
                                 </div>
