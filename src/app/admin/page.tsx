@@ -24,6 +24,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { normalizeArabic } from "@/lib/utils";
 
 // ─────────────────────────────────────────────
 // YOUTUBE HELPERS
@@ -550,33 +551,33 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────
   // DERIVED DATA
   // ─────────────────────────────────────────────
-  const q = searchQuery.toLowerCase().trim();
+  const q = normalizeArabic(searchQuery);
 
   const filteredAlbums = albums.filter(a =>
     !q ||
-    safeStr(a.title).toLowerCase().includes(q) ||
-    safeStr(a.year).includes(q) ||
-    getCategoryLabel(a.category).includes(q),
+    normalizeArabic(a.title).includes(q) ||
+    normalizeArabic(a.year).includes(q) ||
+    normalizeArabic(getCategoryLabel(a.category)).includes(q)
   );
 
   const getAlbumPoems = (albumId: number) =>
     audios
-      .filter(a => a.album_id === albumId && (!q || safeStr(a.title).toLowerCase().includes(q)))
+      .filter(a => a.album_id === albumId && (!q || normalizeArabic(a.title).includes(q)))
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const filteredVideos = videos.filter(v =>
     !q ||
-    safeStr(v.title).toLowerCase().includes(q) ||
-    safeStr(v.youtube_url).toLowerCase().includes(q) ||
-    getVideoCategoryLabel(v.category).includes(q),
+    normalizeArabic(v.title).includes(q) ||
+    normalizeArabic(v.youtube_url).includes(q) ||
+    normalizeArabic(getVideoCategoryLabel(v.category)).includes(q)
   );
 
   const filteredMessages = messages.filter(m =>
     !q ||
-    safeStr(m.name).toLowerCase().includes(q) ||
-    safeStr(m.email).toLowerCase().includes(q) ||
-    safeStr(m.subject).toLowerCase().includes(q) ||
-    safeStr(m.message).toLowerCase().includes(q),
+    normalizeArabic(m.name).includes(q) ||
+    normalizeArabic(m.email).includes(q) ||
+    normalizeArabic(m.subject).includes(q) ||
+    normalizeArabic(m.message).includes(q)
   );
 
   const poemModalAlbum = albums.find(a => a.id === poemModalAlbumId);
