@@ -314,12 +314,8 @@ export function Videos() {
                                 </div>
 
                                 {/* 2. Text/Details Area */}
-                                <div className="p-5 flex-1 flex flex-col gap-2.5">
+                                <div className="p-5 flex-1 flex flex-col gap-0">
                                   <div className="flex items-center justify-between flex-row-reverse gap-2">
-                                    <span className="flex items-center gap-1 text-[9px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                                      <Star className="w-2.5 h-2.5 fill-current" />
-                                      محتوى مرئي
-                                    </span>
                                     {vid.created_at && (
                                       <span className="text-[10px] font-mono text-foreground/40 dark:text-white/30">
                                         {new Date(vid.created_at).toLocaleDateString("ar-BH", { year: "numeric", month: "short" })}
