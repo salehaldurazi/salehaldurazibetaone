@@ -992,12 +992,17 @@ function AlbumGrid({
                       <div className="text-right min-w-0">
                         <h3 className="text-lg font-bold tracking-tight mb-0.5 truncate text-foreground">{album.title}</h3>
                         <div className="flex items-center gap-2 justify-end">
+
+
                           {album.status_label && (
-                            <span className="flex items-center gap-1 text-[8px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
+                            <span className="flex items-center gap-1 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
                               {album.status_label}
                             </span>
                           )}
-                          <p className="text-[10px] text-foreground/40 font-medium">{album.year}</p>
+                          <span className="flex items-center gap-1 text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
+                            {album.year}
+                          </span>
+
                         </div>
                       </div>
                     </div>
