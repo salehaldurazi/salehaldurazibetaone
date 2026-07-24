@@ -1195,7 +1195,7 @@ function AlbumGrid({
                               </span>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent className="pt-2 space-y-1.5 px-2 max-h-80 overflow-y-auto pb-8">
+                          <AccordionContent className="pt-2 space-y-1.5 px-2 max-h-80 overflow-y-auto pb-8 pe-1.5 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent]">
                             {album.tracks &&
                               album.tracks.map((track: any, trackIdx: number) => (
                                 <div
