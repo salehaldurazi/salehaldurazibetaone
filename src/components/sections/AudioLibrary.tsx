@@ -1043,12 +1043,12 @@ function AlbumGrid({
                   }}
                   className="flex"
                 >
-                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start w-full relative">
+                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative" dir="rtl">
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                    {/* Top Bar: External Quick Play Button + Year Badge */}
-                    <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10">
+                    {/* Top Bar: Quick Play Button (Right / Start) + Year Badge (Left / End) */}
+                    <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
                         className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
@@ -1069,7 +1069,7 @@ function AlbumGrid({
                     </div>
 
                     {/* Middle Section: Album Title & Release Year */}
-                    <div className="space-y-0.5 my-auto relative z-10 text-start">
+                    <div className="space-y-0.5 my-auto relative z-10 text-start w-full" dir="rtl">
                       <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-tight line-clamp-2">
                         {album.title}
                       </h3>
@@ -1078,10 +1078,10 @@ function AlbumGrid({
                       </p>
                     </div>
 
-                    {/* Bottom Section: Compact Stats & Minimalist Expand Icon Button */}
-                    <div className="space-y-1 sm:space-y-1.5 relative z-10">
-                      {/* Stats Bar */}
-                      <div className="flex items-center justify-between text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm">
+                    {/* Bottom Section: Compact Inline Stats Container (Right) & Sleek Expand Icon Button (Left) */}
+                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                      {/* Compact inline statistics container (w-auto, justify-start, gap-2) */}
+                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
                         <div className="flex items-center gap-0.5">
                           <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                           <span className="font-medium">{totalListens.toLocaleString("en-US")}</span>
@@ -1093,19 +1093,14 @@ function AlbumGrid({
                         </div>
                       </div>
 
-                      {/* Minimalist Action Row (Icon replacing text button) */}
-                      <div className="flex items-center justify-between pt-0.5">
-                        <span className="text-[8px] sm:text-[9.5px] text-foreground/60 font-semibold">
-                          {album.tracks ? album.tracks.length : 0} قصيدة
-                        </span>
-                        <button
-                          onClick={() => setExpandedAlbumId(album.id)}
-                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
-                          title={`تصفح القصائد (${album.tracks?.length || 0})`}
-                        >
-                          <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-y-0.5 transition-transform" />
-                        </button>
-                      </div>
+                      {/* Minimalist expand icon button (No track count text) */}
+                      <button
+                        onClick={() => setExpandedAlbumId(album.id)}
+                        className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                        title="تصفح القصائد"
+                      >
+                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-y-0.5 transition-transform" />
+                      </button>
                     </div>
                   </Card>
                 </motion.div>
