@@ -294,6 +294,60 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     }
   }, [loading, liveAlbums, onPlay]);
 
+  // الاستماع لحدث "الانتقال إلى الألبوم" لتحديد القسم وفتح قائمة القصائد والتمرير إليها
+  useEffect(() => {
+    const handleGoToAlbum = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      const detail = customEvt.detail;
+      const track = detail?.track;
+      const albumTitle = detail?.albumTitle || track?.album;
+      const albumId = detail?.albumId || track?.album_id;
+
+      if (!albumTitle && !albumId) return;
+
+      const albumsList = liveAlbums.length > 0 ? liveAlbums : FALLBACK_ALBUMS;
+
+      let foundAlbum = albumsList.find(
+        (a) =>
+          (albumId && String(a.id) === String(albumId)) ||
+          (albumTitle && normalizeArabic(a.title) === normalizeArabic(String(albumTitle)))
+      );
+
+      if (!foundAlbum && albumTitle) {
+        foundAlbum = albumsList.find(
+          (a) =>
+            normalizeArabic(a.title).includes(normalizeArabic(String(albumTitle))) ||
+            normalizeArabic(String(albumTitle)).includes(normalizeArabic(a.title))
+        );
+      }
+
+      if (foundAlbum) {
+        if (foundAlbum.category) {
+          setActiveCategory(foundAlbum.category);
+        }
+        setSharedAlbumId(foundAlbum.id);
+        setExpandedAlbumId(foundAlbum.id);
+
+        setTimeout(() => {
+          const el = document.getElementById(`album-${foundAlbum.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            const audioSection = document.getElementById("audio");
+            if (audioSection) {
+              audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+        }, 300);
+      }
+    };
+
+    window.addEventListener("go-to-album", handleGoToAlbum);
+    return () => {
+      window.removeEventListener("go-to-album", handleGoToAlbum);
+    };
+  }, [liveAlbums]);
+
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + 5);
   };
