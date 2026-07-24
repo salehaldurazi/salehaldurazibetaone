@@ -697,7 +697,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   return (
-    <section id="audio" className="py-24 md:py-32 scroll-mt-nav bg-background relative overflow-hidden">
+    <section id="audio" dir="rtl" className="py-24 md:py-32 pb-36 md:pb-48 scroll-mt-nav bg-background relative overflow-hidden text-start">
       {/* تأثيرات الإضاءة الخلفية */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -1012,10 +1012,10 @@ function AlbumGrid({
     <>
       <div
         className={cn(
-          "grid gap-6 transition-all duration-500",
+          "grid transition-all duration-500",
           viewMode === "grid"
-            ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto"
-            : "grid-cols-1 max-w-5xl mx-auto"
+            ? "grid-cols-3 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+            : "grid-cols-1 gap-6 max-w-5xl mx-auto"
         )}
       >
         <AnimatePresence mode="popLayout">
@@ -1041,74 +1041,82 @@ function AlbumGrid({
                     ease: [0.16, 1, 0.3, 1],
                     delay: idx < 6 ? idx * 0.04 : (idx % 6) * 0.04,
                   }}
+                  className="flex"
                 >
-                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.8rem] shadow-xl flex flex-col justify-between h-full">
-                    <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
-                      {/* Top section: Album header */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 flex-row-reverse">
-                          <button
-                            onClick={() => handleAlbumPlay(album, idx)}
-                            className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
-                            title="تشغيل الألبوم كاملاً"
-                          >
-                            <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
-                          </button>
-                          <div className="text-right min-w-0 flex-1">
-                            <h3 className="text-base font-bold tracking-tight truncate text-foreground mb-0.5">
-                              {album.title}
-                            </h3>
-                            <div className="flex items-center gap-1.5 justify-end">
-                              {album.status_label && (
-                                <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold border border-primary/10">
-                                  {album.status_label}
-                                </span>
-                              )}
-                              <p className="text-[10px] text-foreground/40 font-medium">
-                                {album.year}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[2rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start w-full relative">
+                    {/* Decorative background glow */}
+                    <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                        {/* Stats badge */}
-                        <div className="flex items-center justify-between text-[10px] text-foreground/60 bg-foreground/5 border border-foreground/10 px-3 py-1.5 rounded-xl flex-row-reverse backdrop-blur-sm">
-                          <div className="flex items-center gap-1 flex-row-reverse">
-                            <Headphones className="w-3 h-3 text-primary" />
-                            <span className="text-[9px] text-foreground/40 font-medium">
-                              {totalListens.toLocaleString("en-US")}
-                            </span>
-                          </div>
-                          <div className="w-px h-3 bg-foreground/15" />
-                          <div className="flex items-center gap-1 flex-row-reverse">
-                            <Download className="w-3 h-3 text-primary" />
-                            <span className="text-[9px] text-foreground/40 font-medium">
-                              {totalDownloads.toLocaleString("en-US")}
-                            </span>
-                          </div>
+                    {/* Top Bar: External Quick Play Button + Badges */}
+                    <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10">
+                      <button
+                        onClick={() => handleAlbumPlay(album, idx)}
+                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                        title="تشغيل الألبوم كاملاً"
+                      >
+                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                      </button>
+                      <div className="flex items-center gap-1 flex-wrap justify-end">
+                        {album.status_label && (
+                          <span className="hidden sm:inline-block text-[8px] sm:text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold border border-primary/10">
+                            {album.status_label}
+                          </span>
+                        )}
+                        <span className="text-[8px] sm:text-[9px] md:text-[10px] text-foreground/60 font-bold bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10">
+                          {album.year}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle Section: Album Title & Release Year */}
+                    <div className="space-y-0.5 my-auto relative z-10 text-start">
+                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-tight line-clamp-2">
+                        {album.title}
+                      </h3>
+                      <p className="text-[9px] sm:text-xs text-primary/80 font-medium truncate">
+                        إصدار {album.year}
+                      </p>
+                    </div>
+
+                    {/* Bottom Section: Stats & Show Poems Action */}
+                    <div className="space-y-1.5 sm:space-y-2.5 relative z-10">
+                      {/* Stats bar (Listens & Downloads) */}
+                      <div className="flex items-center justify-between text-[7.5px] sm:text-[9px] md:text-[10px] text-foreground/70 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-xl backdrop-blur-sm">
+                        <div className="flex items-center gap-1">
+                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0" />
+                          <span className="font-semibold text-foreground/80 truncate">
+                            {totalListens.toLocaleString("en-US")}
+                          </span>
+                        </div>
+                        <div className="w-px h-2.5 sm:h-3 bg-foreground/15 mx-0.5" />
+                        <div className="flex items-center gap-1">
+                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0" />
+                          <span className="font-semibold text-foreground/80 truncate">
+                            {totalDownloads.toLocaleString("en-US")}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Bottom Action: Show Tracks */}
+                      {/* Show Poems Button */}
                       <button
                         onClick={() => setExpandedAlbumId(album.id)}
-                        className="w-full py-2.5 px-4 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/15 text-primary text-xs font-medium flex items-center justify-between flex-row-reverse transition-all duration-300 group/tr cursor-pointer"
+                        className="w-full py-1 sm:py-1.5 md:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/15 text-primary text-[9px] sm:text-xs font-bold flex items-center justify-between transition-all duration-300 group/tr cursor-pointer shadow-sm"
                       >
-                        <div className="flex items-center gap-1.5 flex-row-reverse">
-                          <span>عرض القصائد</span>
-                          <span className="w-5 h-5 rounded-md bg-primary/20 text-primary flex items-center justify-center text-[9px] font-bold border border-primary/10">
+                        <div className="flex items-center gap-1">
+                          <span className="truncate">عرض القصائد</span>
+                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 rounded-md bg-primary/20 text-primary flex items-center justify-center text-[7.5px] sm:text-[9px] font-bold border border-primary/10 shrink-0">
                             {album.tracks ? album.tracks.length : 0}
                           </span>
                         </div>
-                        <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover/tr:opacity-100 transition-opacity" />
+                        <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 opacity-70 group-hover/tr:opacity-100 transition-opacity shrink-0" />
                       </button>
-                    </CardContent>
+                    </div>
                   </Card>
                 </motion.div>
               );
             }
 
-            // LIST VIEW (Default - 100% original layout)
+            // LIST VIEW (Default - 100% original layout with RTL support)
             return (
               <motion.div
                 key={album.id}
@@ -1198,7 +1206,7 @@ function AlbumGrid({
                               </span>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent className="pt-2 space-y-1.5 px-2">
+                          <AccordionContent className="pt-2 space-y-1.5 px-2 max-h-80 overflow-y-auto pb-8">
                             {album.tracks &&
                               album.tracks.map((track: any, trackIdx: number) => (
                                 <div
@@ -1265,31 +1273,31 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist */}
+      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Player Clearance */}
       <AnimatePresence>
         {viewMode === "grid" && selectedAlbumForGrid && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md pb-32"
             onClick={() => setExpandedAlbumId(null)}
+            dir="rtl"
           >
             <motion.div
               initial={{ scale: 0.92, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 20 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2rem] p-6 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col text-right"
-              dir="rtl"
+              className="relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2.2rem] p-6 shadow-2xl overflow-hidden max-h-[75vh] flex flex-col text-start"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Background Glow */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
               {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-primary/10 flex-row-reverse">
-                <div className="flex items-center gap-3 flex-row-reverse">
+              <div className="flex items-center justify-between pb-4 border-b border-primary/10">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() =>
                       handleAlbumPlay(
@@ -1297,12 +1305,12 @@ function AlbumGrid({
                         albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
                       )
                     }
-                    className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer"
+                    className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0"
                     title="تشغيل الألبوم كاملاً"
                   >
                     <Play className="w-4 h-4 fill-current translate-x-[-1px]" />
                   </button>
-                  <div className="text-right">
+                  <div className="text-start min-w-0">
                     <h3 className="text-lg font-bold text-foreground truncate">
                       {selectedAlbumForGrid.title}
                     </h3>
@@ -1315,22 +1323,22 @@ function AlbumGrid({
 
                 <button
                   onClick={() => setExpandedAlbumId(null)}
-                  className="w-8 h-8 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground/40 hover:text-foreground flex items-center justify-center transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground/40 hover:text-foreground flex items-center justify-center transition-all cursor-pointer shrink-0"
                   title="إغلاق"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Modal Tracklist */}
-              <div className="py-4 space-y-2 overflow-y-auto flex-1 pr-1 pl-1">
+              {/* Flexible Scrollable Tracklist with Persistent Player Clearance (pb-24) */}
+              <div className="py-4 space-y-2 overflow-y-auto flex-1 pe-1 ps-1 pb-24 max-h-[55vh]">
                 {selectedAlbumForGrid.tracks &&
                   selectedAlbumForGrid.tracks.map((track: any, trackIdx: number) => (
                     <div
                       key={track.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-3 flex-row-reverse"
+                      className="flex items-center justify-between p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-3"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Button
                           onClick={() => handleTrackPlay(track, selectedAlbumForGrid)}
                           className="w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0 shadow-sm"
@@ -1344,7 +1352,7 @@ function AlbumGrid({
                           </span>
                         </div>
 
-                        <div className="min-w-0 flex-1 text-right">
+                        <div className="min-w-0 flex-1 text-start">
                           <span className="text-xs md:text-sm font-medium block truncate text-foreground">
                             {track.title}
                           </span>
