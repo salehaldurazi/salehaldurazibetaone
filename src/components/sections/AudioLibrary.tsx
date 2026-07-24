@@ -1048,8 +1048,8 @@ function AlbumGrid({
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                    {/* Top Bar: Quick Play Button (Right / Start) + Status Label & Year Badges (Left / End) */}
-                    <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10 w-full" dir="rtl">
+                    {/* Top Bar: Quick Play Button (Right / Start) + Status Label & Year Badges (Left / End - Strictly Single Line) */}
+                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
                         className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
@@ -1057,13 +1057,13 @@ function AlbumGrid({
                       >
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
-                      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-end">
+                      <div className="flex items-center gap-1 flex-row flex-nowrap justify-end whitespace-nowrap overflow-hidden">
                         {album.status_label && (
-                          <span className="inline-flex items-center text-[8px] sm:text-[9px] md:text-[10px] bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold border border-primary/15 shadow-sm">
+                          <span className="inline-flex items-center text-[7.5px] sm:text-[9px] md:text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold border border-primary/15 shadow-sm whitespace-nowrap shrink-0">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="inline-flex items-center text-[8px] sm:text-[9px] md:text-[10px] text-foreground/70 font-bold bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm">
+                        <span className="inline-flex items-center text-[7.5px] sm:text-[9px] md:text-[10px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
                           {album.year}
                         </span>
                       </div>
@@ -1105,7 +1105,7 @@ function AlbumGrid({
               );
             }
 
-            // LIST VIEW (Refined with strict RTL layout & logical alignment)
+            // LIST VIEW (Refined with strict RTL layout & subtle typography)
             return (
               <motion.div
                 key={album.id}
@@ -1133,16 +1133,16 @@ function AlbumGrid({
                           <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                         </button>
                         <div className="text-start min-w-0">
-                          <h3 className="text-sm md:text-base font-bold tracking-tight mb-0.5 truncate text-foreground">
+                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight mb-0.5 truncate text-foreground">
                             {album.title}
                           </h3>
                           <div className="flex items-center gap-2 justify-start">
                             {album.status_label && (
-                              <span className="flex items-center gap-1 text-[9px] sm:text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
+                              <span className="flex items-center gap-1 text-[8px] sm:text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold border border-primary/10">
                                 {album.status_label}
                               </span>
                             )}
-                            <p className="text-[10px] sm:text-xs text-foreground/50 dark:text-gray-400 font-medium">
+                            <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 font-normal">
                               {album.year}
                             </p>
                           </div>
@@ -1150,17 +1150,17 @@ function AlbumGrid({
                       </div>
 
                       {/* إحصائيات الألبوم الكلية */}
-                      <div className="flex items-center gap-3 text-[10px] sm:text-xs text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-3.5 py-1.5 rounded-2xl backdrop-blur-sm shrink-0 self-center">
-                        <div className="flex items-center gap-1.5">
-                          <Headphones className="w-3.5 h-3.5 text-primary opacity-80" />
-                          <span className="font-medium text-foreground/50 dark:text-gray-400">
+                      <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-3 py-1.5 rounded-2xl backdrop-blur-sm shrink-0 self-center">
+                        <div className="flex items-center gap-1">
+                          <Headphones className="w-3 h-3 text-primary opacity-80" />
+                          <span className="font-normal text-foreground/40 dark:text-gray-400">
                             {totalListens.toLocaleString("en-US")}
                           </span>
                         </div>
                         <div className="w-px h-3 bg-foreground/15" />
-                        <div className="flex items-center gap-1.5">
-                          <Download className="w-3.5 h-3.5 text-primary opacity-80" />
-                          <span className="font-medium text-foreground/50 dark:text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Download className="w-3 h-3 text-primary opacity-80" />
+                          <span className="font-normal text-foreground/40 dark:text-gray-400">
                             {totalDownloads.toLocaleString("en-US")}
                           </span>
                         </div>
