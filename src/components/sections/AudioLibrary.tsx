@@ -1048,7 +1048,7 @@ function AlbumGrid({
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                    {/* Top Bar: Quick Play Button (Right / Start) + Year Badge (Left / End) */}
+                    {/* Top Bar: Quick Play Button (Right / Start) + Status Label & Year Badges (Left / End) */}
                     <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
@@ -1057,13 +1057,13 @@ function AlbumGrid({
                       >
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
-                      <div className="flex items-center gap-1 flex-wrap justify-end">
+                      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-end">
                         {album.status_label && (
-                          <span className="hidden sm:inline-block text-[8px] sm:text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold border border-primary/10">
+                          <span className="inline-flex items-center text-[8px] sm:text-[9px] md:text-[10px] bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold border border-primary/15 shadow-sm">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="text-[8px] sm:text-[9px] md:text-[10px] text-foreground/60 font-bold bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10">
+                        <span className="inline-flex items-center text-[8px] sm:text-[9px] md:text-[10px] text-foreground/70 font-bold bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm">
                           {album.year}
                         </span>
                       </div>
@@ -1105,7 +1105,7 @@ function AlbumGrid({
               );
             }
 
-            // LIST VIEW (Refined with smaller fonts, RTL flow & lighter text colors)
+            // LIST VIEW (Refined with strict RTL layout & logical alignment)
             return (
               <motion.div
                 key={album.id}
@@ -1120,11 +1120,11 @@ function AlbumGrid({
                   delay: idx < 5 ? idx * 0.05 : (idx % 5) * 0.05,
                 }}
               >
-                <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl">
-                  <CardContent className="p-0">
+                <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start" dir="rtl">
+                  <CardContent className="p-0" dir="rtl">
                     {/* ترويسة الألبوم */}
                     <div className="p-4 sm:p-5 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-4 flex-wrap md:flex-nowrap" dir="rtl">
-                      <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4 text-start">
                         <button
                           onClick={() => handleAlbumPlay(album, idx)}
                           className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 shadow-lg cursor-pointer group/btn"
@@ -1168,7 +1168,7 @@ function AlbumGrid({
                     </div>
 
                     {/* قائمة القصائد */}
-                    <div className="px-2 pb-4">
+                    <div className="px-2 pb-4" dir="rtl">
                       <Accordion
                         type="single"
                         collapsible
@@ -1185,8 +1185,8 @@ function AlbumGrid({
                         }}
                       >
                         <AccordionItem value="tracks" className="border-none">
-                          <AccordionTrigger className="hover:no-underline py-2.5 px-4 rounded-xl hover:bg-primary/5 transition-all text-[9px] uppercase opacity-70 hover:opacity-100 flex gap-2 flex-row-reverse group/trigger">
-                            <div className="flex items-center gap-2 flex-row-reverse">
+                          <AccordionTrigger className="hover:no-underline py-2.5 px-4 rounded-xl hover:bg-primary/5 transition-all text-[9px] uppercase opacity-70 hover:opacity-100 flex gap-2 justify-between flex-row group/trigger">
+                            <div className="flex items-center gap-2 flex-row">
                               <span className="group-data-[state=open]/text-primary uppercase text-[11px] md:text-sm font-light">
                                 تصفح القصائد
                               </span>
@@ -1200,10 +1200,11 @@ function AlbumGrid({
                               album.tracks.map((track: any, trackIdx: number) => (
                                 <div
                                   key={track.id}
-                                  className="flex items-center justify-between p-2 rounded-xl bg-foreground/5 hover:bg-primary/10 group/item transition-all border border-transparent hover:border-primary/5 gap-2 flex-row-reverse"
+                                  className="flex items-center justify-between p-2 rounded-xl bg-foreground/5 hover:bg-primary/10 group/item transition-all border border-transparent hover:border-primary/5 gap-2 flex-row"
+                                  dir="rtl"
                                 >
-                                  <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">
-                                    <div className="flex items-center gap-3 flex-row-reverse">
+                                  <div className="flex items-center gap-3 flex-1 min-w-0 flex-row">
+                                    <div className="flex items-center gap-3 flex-row">
                                       <Button
                                         onClick={() => handleTrackPlay(track, album)}
                                         className="w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0 shadow-sm"
@@ -1219,7 +1220,7 @@ function AlbumGrid({
                                       </div>
                                     </div>
 
-                                    <div className="min-w-0 text-right flex-1 cursor-default">
+                                    <div className="min-w-0 text-start flex-1 cursor-default">
                                       <span className="text-[11px] md:text-sm font-light block truncate leading-tight group-hover/item:text-primary transition-colors text-foreground">
                                         {track.title}
                                       </span>
