@@ -285,11 +285,6 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
         // تنظيف عنوان الرابط من الباراميترات لمنع إعادة التشغيل العشوائي عند تحديث الصفحة
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
-
-        toast({
-          title: "تم تحميل المقطع المشترك",
-          description: `${foundAlbum.title} - ${foundTrack.title}`,
-        });
       }
     }
   }, [loading, liveAlbums, onPlay]);
@@ -1049,13 +1044,11 @@ function AlbumGrid({
 
 
                           {album.status_label && (
-                            <span className="flex items-center gap-1 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
+                            <span className="flex items-center gap-1 text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
                               {album.status_label}
                             </span>
                           )}
-                          <span className="flex items-center gap-1 text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-primary/10">
-                            {album.year}
-                          </span>
+                          <p className="text-[10px] text-foreground/40 font-medium">{album.year}</p>
 
                         </div>
                       </div>
