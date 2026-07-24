@@ -103,9 +103,9 @@ export function AudioPlayer({
     }
 
     const albumName = track.album || "إصدار رسمي";
-    const lockScreenTitle = `(${albumName} - ${track.title})`;
+    const lockScreenTitle = `${albumName} - ${track.title}`;
 
-    // 1. Dynamic Metadata formatted for Lock-Screen: (Album Name - Track/Poem Name)
+    // 1. Dynamic Metadata formatted for Lock-Screen: Album Name - Track/Poem Name (NO parentheses or brackets)
     navigator.mediaSession.metadata = new MediaMetadata({
       title: lockScreenTitle,
       artist: "صالح الدرازي",
@@ -206,7 +206,7 @@ export function AudioPlayer({
             if (details.fastSeek && "fastSeek" in audioRef.current) {
               audioRef.current.fastSeek(targetTime);
             } else {
-              audioRef.current.currentTime = targetTime;
+              audioRef.current.currentTime = details.seekTime;
             }
             setCurrentTime(targetTime);
             updatePositionState();
@@ -292,11 +292,6 @@ export function AudioPlayer({
     if (audioSection) {
       audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-
-    toast({
-      title: "الانتقال إلى الألبوم",
-      description: track.album || track.title,
-    });
   };
 
   // 2. Download MP3 function
@@ -304,23 +299,13 @@ export function AudioPlayer({
     if (!track) return;
     const audioUrl = track.audioUrl || track.audio_url;
     if (!audioUrl) {
-      toast({
-        title: "خطأ",
-        description: "رابط الصوت غير متوفر للتحميل",
-        variant: "destructive",
-      });
       return;
     }
 
     const albumName = track.album || "ألبوم";
-    const fileName = `(${albumName} - ${track.title}).mp3`;
+    const fileName = `${albumName} - ${track.title}.mp3`;
 
     try {
-      toast({
-        title: "جاري التحميل",
-        description: `جاري تحميل ${track.title}...`,
-      });
-
       const response = await fetch(audioUrl);
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -341,7 +326,7 @@ export function AudioPlayer({
   const handleShare = async () => {
     if (!track) return;
     const albumName = track.album || "ألبوم";
-    const fullName = `(${albumName} - ${track.title})`;
+    const fullName = `${albumName} - ${track.title}`;
     const shareUrl = `${window.location.origin}/?track=${track.id}`;
     const shareData = {
       title: fullName,
