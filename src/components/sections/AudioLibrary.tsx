@@ -747,52 +747,32 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
               {/* أدوات التحكم: الفرز والتشغيل العشوائي التلقائي بتصميم عصري متناسق (Golden Glass) */}
               <div className="w-full flex flex-row-reverse justify-center items-center gap-4 flex-wrap">
-                {/* زر التشغيل العشوائي للقسم الحالي */}
+                {/* زر التشغيل العشوائي للقسم الحالي (أيقونة فقط) */}
                 <button
                   onClick={handleShufflePlay}
-                  className="relative group overflow-hidden flex items-center justify-between gap-3 px-6 h-12 min-w-[220px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer"
-                  title="تشغيل تلقائي عشوائي من هذا القسم"
+                  className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
+                  title={activeCategory === "sorrow" ? "عشوائي الأحزان" : activeCategory === "joy" ? "عشوائي الأفراح" : "عشوائي الأدعية"}
                 >
-                  {/* تأثير ضوئي عند المرور */}
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-
-                  <div className="flex items-center gap-2 flex-row-reverse text-primary transition-colors">
-                    <Shuffle className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-all duration-500" />
-                    <span className="text-[11px] font-bold tracking-tight uppercase whitespace-nowrap">
-                      {activeCategory === "sorrow" ? "عشوائي الأحزان" : activeCategory === "joy" ? "عشوائي الأفراح" : "عشوائي الأدعية"}
-                    </span>
-                  </div>
-
-                  <div className="h-4 w-px bg-primary/20 mx-1" />
-
-                  <Play className="w-3.5 h-3.5 text-primary/40 group-hover:text-primary fill-current transition-colors duration-300" />
+                  <Shuffle className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-all duration-500" />
                 </button>
 
-                {/* زر الفرز */}
+                {/* زر الفرز (أيقونة فقط) */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative group overflow-hidden flex items-center justify-between gap-3 px-6 h-12 min-w-[220px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer">
-                      {/* تأثير ضوئي عند المرور */}
+                    <button
+                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
+                      title={getSortLabel()}
+                    >
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-
-                      <div className="flex items-center gap-2 flex-row-reverse text-primary transition-colors">
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-all duration-500" />
-                        <span className="text-[11px] font-bold tracking-tight uppercase whitespace-nowrap">
-                          {getSortLabel()}
-                        </span>
-                      </div>
-
-                      <div className="h-4 w-px bg-primary/20 mx-1" />
-
-                      <ChevronDown className="w-3.5 h-3.5 text-primary/40 group-hover:text-primary transition-colors duration-300" />
+                      <ArrowUpDown className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-all duration-500" />
                     </button>
                   </DropdownMenuTrigger>
 
-                  {/* محتوى القائمة المنسدلة المعرب بالكامل مع ترتيب مخصص وألوان أيقونات موحدة */}
                   <DropdownMenuContent
                     align="center"
                     sideOffset={12}
-                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)] rounded-[2rem] p-2 shadow-[0_30px_70px_rgba(0,0,0,0.2)] dark:shadow-[0_30px_70px_rgba(0,0,0,0.9)] z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
+                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-48 rounded-[2rem] p-2 shadow-[0_30px_70px_rgba(0,0,0,0.2)] dark:shadow-[0_30px_70px_rgba(0,0,0,0.9)] z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
 
@@ -820,7 +800,6 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         )} />
                         <span className="text-xs font-bold tracking-wide">{option.label}</span>
 
-                        {/* مؤشر الخيار المختار */}
                         {sortBy === option.id && (
                           <div className="absolute left-4 w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(197,160,89,0.8)]" />
                         )}
