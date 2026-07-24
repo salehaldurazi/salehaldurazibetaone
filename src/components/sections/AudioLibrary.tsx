@@ -1057,13 +1057,13 @@ function AlbumGrid({
                       >
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
-                      <div className="flex items-center gap-1 flex-row flex-nowrap justify-end whitespace-nowrap overflow-hidden">
+                      <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
                         {album.status_label && (
-                          <span className="inline-flex items-center text-[7.5px] sm:text-[9px] md:text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold border border-primary/15 shadow-sm whitespace-nowrap shrink-0">
+                          <span className="inline-flex items-center text-[8px] sm:text-[9px] bg-primary/20 text-primary px-1 py-[2px] rounded-full font-bold border border-primary/15 shadow-sm whitespace-nowrap shrink-0">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="inline-flex items-center text-[7.5px] sm:text-[9px] md:text-[10px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
+                        <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
                           {album.year}
                         </span>
                       </div>
