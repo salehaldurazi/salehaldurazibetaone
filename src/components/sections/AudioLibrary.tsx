@@ -1011,6 +1011,7 @@ function AlbumGrid({
   return (
     <>
       <div
+        dir="rtl"
         className={cn(
           "grid transition-all duration-500",
           viewMode === "grid"
@@ -1068,14 +1069,11 @@ function AlbumGrid({
                       </div>
                     </div>
 
-                    {/* Middle Section: Album Title & Release Year */}
-                    <div className="space-y-0.5 my-auto relative z-10 text-start w-full" dir="rtl">
-                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-tight line-clamp-2">
+                    {/* Middle Section: Album Title Only (Bottom year removed) */}
+                    <div className="my-auto relative z-10 text-start w-full" dir="rtl">
+                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-3">
                         {album.title}
                       </h3>
-                      <p className="text-[9px] sm:text-xs text-primary/80 font-medium truncate">
-                        {album.year}
-                      </p>
                     </div>
 
                     {/* Bottom Section: Compact Inline Stats Container (Right) & Sleek Expand Icon Button (Left) */}
