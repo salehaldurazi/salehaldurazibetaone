@@ -77,10 +77,6 @@ export default function Home() {
     setCurrentPlaylist(playlist);
     const index = playlist.findIndex(t => t.id === track.id);
     setCurrentTrackIndex(index);
-    toast({
-      title: "بدأ التشغيل",
-      description: track.title,
-    });
   };
 
   const handleAddToQueue = (track: Track) => {
