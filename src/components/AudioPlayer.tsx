@@ -103,10 +103,11 @@ export function AudioPlayer({
     }
 
     const albumName = track.album || "إصدار رسمي";
+    const lockScreenTitle = `(${albumName} - ${track.title})`;
 
-    // 1. Dynamic Metadata
+    // 1. Dynamic Metadata formatted for Lock-Screen: (Album Name - Track/Poem Name)
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.title,
+      title: lockScreenTitle,
       artist: "صالح الدرازي",
       album: albumName,
       artwork: [
@@ -383,9 +384,7 @@ export function AudioPlayer({
 
   if (!track) return null;
 
-  const displayTitle = track.album
-    ? `(${track.album} - ${track.title})`
-    : `(${track.title})`;
+  const albumDisplayName = track.album || "صالح الدرازي";
 
   return (
     <div
@@ -439,10 +438,10 @@ export function AudioPlayer({
               </div>
               <div className="flex flex-col min-w-0 text-right">
                 <span className="text-[11px] font-bold text-foreground truncate leading-none">
-                  {displayTitle}
+                  {track.title}
                 </span>
-                <span className="text-[9px] text-primary/70 truncate font-light mt-0.5">
-                  صالح الدرازي
+                <span className="text-[9px] text-primary/70 truncate font-light mt-1">
+                  {albumDisplayName}
                 </span>
               </div>
             </div>
@@ -463,10 +462,10 @@ export function AudioPlayer({
                 </div>
                 <div className="min-w-0 text-right">
                   <h4 className="text-[12px] font-bold text-foreground truncate leading-tight">
-                    {displayTitle}
+                    {track.title}
                   </h4>
-                  <p className="text-[9px] text-primary/80 font-medium truncate">
-                    صالح الدرازي
+                  <p className="text-[9px] text-primary/80 font-medium truncate mt-0.5">
+                    {albumDisplayName}
                   </p>
                 </div>
               </div>
