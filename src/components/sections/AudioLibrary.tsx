@@ -621,7 +621,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       const shareText = `${fullName}\n${shareUrl}`;
       const shareData = {
         title: fullName, // وضعنا الاسم المنسق هنا
-        text: `استمع إلى "${fullName}" بصوت الرادود صالح الدرازي عبر أناقة الدرازي`,
+        text: `استمع إلى "${fullName}" بصوت الرادود صالح الدرازي`,
         url: shareUrl,
       };
 
