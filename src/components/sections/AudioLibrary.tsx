@@ -216,7 +216,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [expandedAlbumId, setExpandedAlbumId] = useState<string | number | null>(null);
   const [sharedAlbumId, setSharedAlbumId] = useState<string | number | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   // Reset visibleCount when activeCategory or searchQuery changes
   useEffect(() => {
@@ -347,8 +347,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     };
   }, [liveAlbums]);
 
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 5);
+  const handleShowAll = () => {
+    setVisibleCount(filteredAndSortedAlbums.length);
   };
 
   /**
@@ -875,7 +875,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     />
                   </TabsContent>
 
-                  {/* Load More Button */}
+                  {/* Show All Button */}
                   <AnimatePresence>
                     {filteredAndSortedAlbums.length > visibleCount && (
                       <motion.div
@@ -886,13 +886,13 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         className="flex justify-center mt-12"
                       >
                         <motion.button
-                          onClick={handleLoadMore}
+                          onClick={handleShowAll}
                           whileHover={{ scale: 1.03, translateY: -2 }}
                           whileTap={{ scale: 0.98 }}
                           className="relative group overflow-hidden flex items-center justify-center gap-3 px-8 h-12 min-w-[180px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)] text-primary text-xs font-bold"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                          <span className="relative z-10">عرض المزيد</span>
+                          <span className="relative z-10">عرض الكل</span>
                           <ChevronDown className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors duration-300 relative z-10 group-hover:translate-y-0.5 transition-transform duration-300" />
                         </motion.button>
                       </motion.div>
@@ -1187,7 +1187,7 @@ function AlbumGrid({
                         <AccordionItem value="tracks" className="border-none">
                           <AccordionTrigger className="hover:no-underline py-2.5 px-4 rounded-xl hover:bg-primary/5 transition-all text-[9px] uppercase opacity-70 hover:opacity-100 flex gap-2 justify-between flex-row group/trigger">
                             <div className="flex items-center gap-2 flex-row">
-                              <span className="group-data-[state=open]/text-primary uppercase text-[11px] md:text-sm font-light">
+                              <span className="group-data-[state=open]/text-primary uppercase text-[10px] md:text-sm font-bold">
                                 تصفح القصائد
                               </span>
                               <span className="w-5 h-5 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-[9px] border border-primary/10">
