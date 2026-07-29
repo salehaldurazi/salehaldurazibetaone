@@ -1015,7 +1015,7 @@ function AlbumGrid({
         className={cn(
           "grid transition-all duration-500",
           viewMode === "grid"
-            ? "grid-cols-3 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+            ? "grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
             : "grid-cols-1 gap-6 max-w-5xl mx-auto"
         )}
       >
@@ -1278,7 +1278,7 @@ function AlbumGrid({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md pb-32"
+              className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
               onClick={() => setExpandedAlbumId(null)}
               dir="rtl"
             >
@@ -1345,7 +1345,7 @@ function AlbumGrid({
                 </div>
 
                 {/* Premium Custom Scrollbar Tracklist with Clearance */}
-                <div className="py-4 space-y-2 overflow-y-auto flex-1 pe-1.5 ps-1 pb-24 max-h-[55vh] [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent]">
+                <div className="py-4 space-y-2 overflow-y-auto flex-1 pe-1.5 ps-1 max-h-[55vh] [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent]">
                   {selectedAlbumForGrid.tracks &&
                     selectedAlbumForGrid.tracks.map((track: any, trackIdx: number) => (
                       <div
