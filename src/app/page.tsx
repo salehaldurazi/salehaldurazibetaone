@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Hero } from "@/components/sections/Hero";
+import { UpdatesBar } from "@/components/UpdatesBar";
 import { supabase } from "@/lib/supabase-js";
 import { Biography } from "@/components/sections/Biography";
 import { AudioLibrary } from "@/components/sections/AudioLibrary";
@@ -138,6 +139,7 @@ export default function Home() {
       <Navigation />
 
       <div id="home"><Hero /></div>
+      <UpdatesBar />
       <div id="biography"><Biography /></div>
       <div id="audio"><AudioLibrary onPlay={handlePlay} onAddToQueue={handleAddToQueue} /></div>
       <div id="videos"><Videos /></div>
