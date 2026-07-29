@@ -292,40 +292,42 @@ export function Videos() {
                                         )}
 
                                         {/* Premium Ambient Vignette Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30 transition-opacity duration-500" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40 transition-opacity duration-500" />
 
-                                        {/* 1) Floating Geometric Action Icons (Share & YouTube in Gold) - Non-verbal */}
+                                        {/* 1) High-Contrast Dark Glassmorphism Pill Container with Gold Geometric Action Icons */}
                                         <div
-                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1.5 z-10"
+                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1 p-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/60 hover:border-primary/70 hover:shadow-[0_0_18px_rgba(197,160,89,0.35)] transition-all duration-300 z-10"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {/* SHARE ICON */}
                                           <button
                                             onClick={() => handleShare(vid.title, watchUrl)}
-                                            className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 active:scale-95 cursor-pointer"
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 border border-transparent hover:border-primary/40 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer"
                                             title="مشاركة الفيديو"
                                             aria-label="Share Video"
                                           >
-                                            <Share2 className="w-3.5 h-3.5" />
+                                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
                                           </button>
+
+                                          <div className="w-px h-3.5 bg-primary/30" />
 
                                           {/* YOUTUBE GEOMETRIC ICON */}
                                           <a
                                             href={watchUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 active:scale-95 cursor-pointer"
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 border border-transparent hover:border-primary/40 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer"
                                             title="مشاهدة على يوتيوب"
                                             aria-label="Go to YouTube"
                                           >
-                                            <Youtube className="w-3.5 h-3.5 fill-current" />
+                                            <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                                           </a>
                                         </div>
 
-                                        {/* 2) Center Translucent Glass Play Icon - Start Watching (Non-verbal) */}
+                                        {/* 2) Center Translucent Dark Glass Play Icon Overlay (Non-verbal) */}
                                         {videoId && (
                                           <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-full bg-black/50 backdrop-blur-md border border-primary/40 text-primary flex items-center justify-center shadow-2xl group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/60 group-hover/thumb:text-primary-foreground transition-all duration-300">
+                                            <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-xl border border-primary/40 text-primary flex items-center justify-center shadow-2xl shadow-black/60 group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/80 group-hover/thumb:text-primary-foreground transition-all duration-300">
                                               <Play className="w-5 h-5 sm:w-7 sm:h-7 fill-white text-white translate-x-[-1px] group-hover/thumb:scale-110 transition-transform duration-300" />
                                             </div>
                                           </div>
@@ -333,7 +335,7 @@ export function Videos() {
 
                                         {/* Floating Sub-category Badge (Top-Right) */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-primary/20 text-primary text-[8px] sm:text-[10px] font-bold tracking-wide shadow-md">
+                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 text-primary text-[8px] sm:text-[10px] font-bold tracking-wide shadow-lg shadow-black/60">
                                             {vid.sub_category}
                                           </div>
                                         )}
