@@ -231,7 +231,7 @@ export function Videos() {
                             <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
                               <CardContent className="p-0 flex flex-col h-full">
 
-                                {/* 1. Video Player Area (Inline Frame vs Cover with smooth Framer Motion crossfade) */}
+                                {/* 1. Video Player / Box Area with Dynamic Non-Verbal Geometric Overlay Icons */}
                                 <div className="relative aspect-video overflow-hidden bg-black/95">
                                   <AnimatePresence mode="wait">
                                     {isPlaying && embedUrl ? (
@@ -251,16 +251,17 @@ export function Videos() {
                                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                           allowFullScreen
                                         />
-                                        {/* Quick close button on top of active player */}
+                                        {/* Floating Close Button for Active Player */}
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setActiveVideoId(null);
                                           }}
-                                          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1 sm:p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20"
+                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/20 text-white/90 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20 cursor-pointer"
                                           title="إغلاق التشغيل"
+                                          aria-label="Close Video"
                                         >
-                                          <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                          <X className="w-3.5 h-3.5" />
                                         </button>
                                       </motion.div>
                                     ) : (
@@ -290,21 +291,49 @@ export function Videos() {
                                           </div>
                                         )}
 
-                                        {/* Premium Ambient Gradient — adapts to theme */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 dark:from-[#12110f] via-transparent to-transparent transition-opacity duration-500" />
+                                        {/* Premium Ambient Vignette Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30 transition-opacity duration-500" />
 
-                                        {/* Centered Glassmorphic glowing Play Button */}
+                                        {/* 1) Floating Geometric Action Icons (Share & YouTube in Gold) - Non-verbal */}
+                                        <div
+                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1.5 z-10"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {/* SHARE ICON */}
+                                          <button
+                                            onClick={() => handleShare(vid.title, watchUrl)}
+                                            className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 active:scale-95 cursor-pointer"
+                                            title="مشاركة الفيديو"
+                                            aria-label="Share Video"
+                                          >
+                                            <Share2 className="w-3.5 h-3.5" />
+                                          </button>
+
+                                          {/* YOUTUBE GEOMETRIC ICON */}
+                                          <a
+                                            href={watchUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 active:scale-95 cursor-pointer"
+                                            title="مشاهدة على يوتيوب"
+                                            aria-label="Go to YouTube"
+                                          >
+                                            <Youtube className="w-3.5 h-3.5 fill-current" />
+                                          </a>
+                                        </div>
+
+                                        {/* 2) Center Translucent Glass Play Icon - Start Watching (Non-verbal) */}
                                         {videoId && (
                                           <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-full bg-primary/95 text-primary-foreground border border-white/20 flex items-center justify-center shadow-lg shadow-primary/20 backdrop-blur-sm group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:shadow-primary/40 transition-all duration-300">
-                                              <Play className="w-4 h-4 sm:w-6 sm:h-6 fill-current translate-x-[-1px]" />
+                                            <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-full bg-black/50 backdrop-blur-md border border-primary/40 text-primary flex items-center justify-center shadow-2xl group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/60 group-hover/thumb:text-primary-foreground transition-all duration-300">
+                                              <Play className="w-5 h-5 sm:w-7 sm:h-7 fill-white text-white translate-x-[-1px] group-hover/thumb:scale-110 transition-transform duration-300" />
                                             </div>
                                           </div>
                                         )}
 
-                                        {/* Floating sub-category badge */}
+                                        {/* Floating Sub-category Badge (Top-Right) */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-primary text-[8px] sm:text-[10px] font-medium tracking-wide">
+                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-primary/20 text-primary text-[8px] sm:text-[10px] font-bold tracking-wide shadow-md">
                                             {vid.sub_category}
                                           </div>
                                         )}
@@ -313,8 +342,8 @@ export function Videos() {
                                   </AnimatePresence>
                                 </div>
 
-                                {/* 2. Text/Details Area */}
-                                <div className="p-2.5 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
+                                {/* 2. Text & Metadata Area (Clean layout without separate text buttons) */}
+                                <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
                                   <div>
                                     <div className="flex items-center justify-between flex-row-reverse gap-2">
                                       {vid.created_at && (
@@ -324,7 +353,7 @@ export function Videos() {
                                       )}
                                     </div>
 
-                                    <h3 className="text-xs sm:text-base md:text-lg font-medium sm:font-light text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-2 mt-1">
+                                    <h3 className="text-xs sm:text-base md:text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-2 mt-1">
                                       {vid.title ?? "بدون عنوان"}
                                     </h3>
 
@@ -334,59 +363,6 @@ export function Videos() {
                                       </p>
                                     )}
                                   </div>
-                                </div>
-
-                                {/* 3. Redesigned Premium Action Bar */}
-                                <div className="p-2 sm:p-3 md:p-4 border-t border-border dark:border-white/5 bg-muted/50 dark:bg-black/20 flex items-center justify-between gap-1 sm:gap-2 flex-row-reverse mt-auto">
-                                  {/* WATCH BUTTON */}
-                                  <Button
-                                    variant={isPlaying ? "destructive" : "default"}
-                                    onClick={() => {
-                                      if (isPlaying) {
-                                        setActiveVideoId(null);
-                                      } else {
-                                        if (videoId) setActiveVideoId(vid.id);
-                                      }
-                                    }}
-                                    className={`flex-1 h-7.5 sm:h-9 rounded-lg sm:rounded-xl font-medium text-[10px] sm:text-xs px-1.5 sm:px-3 flex items-center justify-center gap-1 transition-all duration-300 ${isPlaying
-                                      ? "bg-red-500/15 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20"
-                                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                                      }`}
-                                  >
-                                    {isPlaying ? (
-                                      <>
-                                        <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                                        <span>إغلاق</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                                        <span>مشاهدة</span>
-                                      </>
-                                    )}
-                                  </Button>
-
-                                  {/* SHARE BUTTON */}
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleShare(vid.title, watchUrl)}
-                                    className="h-7.5 sm:h-9 px-1.5 sm:px-3 rounded-lg sm:rounded-xl border-border dark:border-white/10 hover:bg-muted dark:hover:bg-white/5 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-[10px] sm:text-xs flex items-center gap-1 transition-all duration-200"
-                                  >
-                                    <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                    <span className="hidden sm:inline">مشاركة</span>
-                                  </Button>
-
-                                  {/* YOUTUBE LINK BUTTON */}
-                                  <a
-                                    href={watchUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="h-7.5 sm:h-9 px-1.5 sm:px-3 rounded-lg sm:rounded-xl border border-border dark:border-white/10 bg-muted/60 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-[10px] sm:text-xs flex items-center gap-1 transition-all duration-200"
-                                  >
-                                    <Youtube className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
-                                    <span className="hidden sm:inline">يوتيوب</span>
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                  </a>
                                 </div>
 
                               </CardContent>
