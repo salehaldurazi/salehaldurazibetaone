@@ -296,31 +296,33 @@ export function Videos() {
 
                                         {/* 1) High-Contrast Dark Glassmorphism Pill Container with Gold Geometric Action Icons */}
                                         <div
-                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1 p-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/60 hover:border-primary/70 hover:shadow-[0_0_18px_rgba(197,160,89,0.35)] transition-all duration-300 z-10"
+                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1 p-1 rounded-full bg-black/75 dark:bg-black/85 backdrop-blur-xl border border-primary/50 shadow-xl shadow-black/80 hover:border-primary hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] transition-all duration-300 z-30 pointer-events-auto"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {/* SHARE ICON */}
                                           <button
                                             onClick={() => handleShare(vid.title, watchUrl)}
-                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 border border-transparent hover:border-primary/40 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer"
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
                                             title="مشاركة الفيديو"
                                             aria-label="Share Video"
                                           >
-                                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2] text-primary" />
                                           </button>
 
-                                          <div className="w-px h-3.5 bg-primary/30" />
+                                          <div className="w-px h-3.5 bg-primary/40" />
 
                                           {/* YOUTUBE GEOMETRIC ICON */}
                                           <a
                                             href={watchUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 border border-transparent hover:border-primary/40 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer"
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
                                             title="مشاهدة على يوتيوب"
                                             aria-label="Go to YouTube"
                                           >
-                                            <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
+                                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                                            </svg>
                                           </a>
                                         </div>
 
