@@ -216,7 +216,7 @@ export function Videos() {
                       لا توجد مرئيات في هذا القسم حالياً
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6" dir="rtl">
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6" dir="rtl">
                       {groupedVideos[key].map((vid, idx) => {
                         const videoId = extractYouTubeId(vid.youtube_url);
                         const watchUrl = vid.youtube_url ?? (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "#");
@@ -228,7 +228,7 @@ export function Videos() {
 
                         return (
                           <FadeInSection key={vid.id} delay={idx * 100}>
-                            <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
+                            <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
                               <CardContent className="p-0 flex flex-col h-full">
 
                                 {/* 1. Video Player Area (Inline Frame vs Cover with smooth Framer Motion crossfade) */}
@@ -257,10 +257,10 @@ export function Videos() {
                                             e.stopPropagation();
                                             setActiveVideoId(null);
                                           }}
-                                          className="absolute top-3 right-3 p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20"
+                                          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1 sm:p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20"
                                           title="إغلاق التشغيل"
                                         >
-                                          <X className="w-3.5 h-3.5" />
+                                          <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         </button>
                                       </motion.div>
                                     ) : (
@@ -280,7 +280,7 @@ export function Videos() {
                                             src={thumbnailUrl}
                                             alt={vid.title ?? ""}
                                             fill
-                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            sizes="(max-width: 768px) 50vw, 50vw"
                                             referrerPolicy="no-referrer"
                                             className="object-cover scale-100 group-hover/thumb:scale-105 transition-transform duration-700 ease-out brightness-[0.85] group-hover/thumb:brightness-100"
                                           />
@@ -296,15 +296,15 @@ export function Videos() {
                                         {/* Centered Glassmorphic glowing Play Button */}
                                         {videoId && (
                                           <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-14 h-14 rounded-full bg-primary/95 text-primary-foreground border border-white/20 flex items-center justify-center shadow-lg shadow-primary/20 backdrop-blur-sm group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:shadow-primary/40 transition-all duration-300">
-                                              <Play className="w-6 h-6 fill-current translate-x-[-1px]" />
+                                            <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-full bg-primary/95 text-primary-foreground border border-white/20 flex items-center justify-center shadow-lg shadow-primary/20 backdrop-blur-sm group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:shadow-primary/40 transition-all duration-300">
+                                              <Play className="w-4 h-4 sm:w-6 sm:h-6 fill-current translate-x-[-1px]" />
                                             </div>
                                           </div>
                                         )}
 
                                         {/* Floating sub-category badge */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-primary text-[10px] font-medium tracking-wide">
+                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-primary text-[8px] sm:text-[10px] font-medium tracking-wide">
                                             {vid.sub_category}
                                           </div>
                                         )}
@@ -314,28 +314,30 @@ export function Videos() {
                                 </div>
 
                                 {/* 2. Text/Details Area */}
-                                <div className="p-5 flex-1 flex flex-col gap-0">
-                                  <div className="flex items-center justify-between flex-row-reverse gap-2">
-                                    {vid.created_at && (
-                                      <span className="text-[10px] font-mono text-foreground/40 dark:text-white/30">
-                                        {new Date(vid.created_at).toLocaleDateString("ar-BH", { year: "numeric", month: "short" })}
-                                      </span>
+                                <div className="p-2.5 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
+                                  <div>
+                                    <div className="flex items-center justify-between flex-row-reverse gap-2">
+                                      {vid.created_at && (
+                                        <span className="text-[9px] sm:text-[10px] font-mono text-foreground/40 dark:text-white/30">
+                                          {new Date(vid.created_at).toLocaleDateString("ar-BH", { year: "numeric", month: "short" })}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <h3 className="text-xs sm:text-base md:text-lg font-medium sm:font-light text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-2 mt-1">
+                                      {vid.title ?? "بدون عنوان"}
+                                    </h3>
+
+                                    {vid.description && (
+                                      <p className="text-[10px] sm:text-xs text-foreground/50 leading-tight sm:leading-relaxed line-clamp-2 mt-1">
+                                        {vid.description}
+                                      </p>
                                     )}
                                   </div>
-
-                                  <h3 className="text-base md:text-lg font-light text-foreground group-hover:text-primary transition-colors duration-300 leading-snug line-clamp-1 mt-1">
-                                    {vid.title ?? "بدون عنوان"}
-                                  </h3>
-
-                                  {vid.description && (
-                                    <p className="text-xs text-foreground/50 leading-relaxed line-clamp-2">
-                                      {vid.description}
-                                    </p>
-                                  )}
                                 </div>
 
                                 {/* 3. Redesigned Premium Action Bar */}
-                                <div className="p-4 border-t border-border dark:border-white/5 bg-muted/50 dark:bg-black/20 flex items-center justify-between gap-2 flex-row-reverse mt-auto">
+                                <div className="p-2 sm:p-3 md:p-4 border-t border-border dark:border-white/5 bg-muted/50 dark:bg-black/20 flex items-center justify-between gap-1 sm:gap-2 flex-row-reverse mt-auto">
                                   {/* WATCH BUTTON */}
                                   <Button
                                     variant={isPlaying ? "destructive" : "default"}
@@ -346,20 +348,20 @@ export function Videos() {
                                         if (videoId) setActiveVideoId(vid.id);
                                       }
                                     }}
-                                    className={`flex-1 h-9 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-300 ${isPlaying
+                                    className={`flex-1 h-7.5 sm:h-9 rounded-lg sm:rounded-xl font-medium text-[10px] sm:text-xs px-1.5 sm:px-3 flex items-center justify-center gap-1 transition-all duration-300 ${isPlaying
                                       ? "bg-red-500/15 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20"
                                       : "bg-primary text-primary-foreground hover:bg-primary/90"
                                       }`}
                                   >
                                     {isPlaying ? (
                                       <>
-                                        <Square className="w-3.5 h-3.5 fill-current" />
-                                        <span>إغلاق المشاهدة</span>
+                                        <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                                        <span>إغلاق</span>
                                       </>
                                     ) : (
                                       <>
-                                        <Play className="w-3.5 h-3.5 fill-current" />
-                                        <span>مشاهدة الآن</span>
+                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                                        <span>مشاهدة</span>
                                       </>
                                     )}
                                   </Button>
@@ -368,9 +370,9 @@ export function Videos() {
                                   <Button
                                     variant="outline"
                                     onClick={() => handleShare(vid.title, watchUrl)}
-                                    className="h-9 px-3 rounded-xl border-border dark:border-white/10 hover:bg-muted dark:hover:bg-white/5 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-xs flex items-center gap-1.5 transition-all duration-200"
+                                    className="h-7.5 sm:h-9 px-1.5 sm:px-3 rounded-lg sm:rounded-xl border-border dark:border-white/10 hover:bg-muted dark:hover:bg-white/5 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-[10px] sm:text-xs flex items-center gap-1 transition-all duration-200"
                                   >
-                                    <Share2 className="w-3.5 h-3.5" />
+                                    <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                     <span className="hidden sm:inline">مشاركة</span>
                                   </Button>
 
@@ -379,9 +381,9 @@ export function Videos() {
                                     href={watchUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="h-9 px-3 rounded-xl border border-border dark:border-white/10 bg-muted/60 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-xs flex items-center gap-1.5 transition-all duration-200"
+                                    className="h-7.5 sm:h-9 px-1.5 sm:px-3 rounded-lg sm:rounded-xl border border-border dark:border-white/10 bg-muted/60 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 text-foreground/70 dark:text-white/80 hover:text-foreground dark:hover:text-white text-[10px] sm:text-xs flex items-center gap-1 transition-all duration-200"
                                   >
-                                    <Youtube className="w-3.5 h-3.5 text-red-500" />
+                                    <Youtube className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
                                     <span className="hidden sm:inline">يوتيوب</span>
                                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                                   </a>
