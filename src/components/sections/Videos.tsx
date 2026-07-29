@@ -304,7 +304,7 @@ export function Videos() {
                                   </AnimatePresence>
                                 </div>
 
-                                {/* 2. Metadata & Unified Glassmorphic Action Bar (Beneath Title & Description) */}
+                                {/* 2. Metadata & 3 SEPARATE PERFECTLY CIRCULAR GLASSMORPHISM ICON BUTTONS */}
                                 <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
                                   <div>
                                     <div className="flex items-center justify-between flex-row-reverse gap-2 mb-1">
@@ -327,40 +327,34 @@ export function Videos() {
                                     )}
                                   </div>
 
-                                  {/* UNIFIED PREMIUM GLASSMORPHISM PILL CONTAINER (Non-Verbal Geometric Icons Only) */}
+                                  {/* 3 PERFECTLY CENTERED & IDENTICAL GLASSMORPHISM CIRCULAR BUTTONS */}
                                   <div
-                                    className="mt-3 sm:mt-4 p-1 sm:p-1.5 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/30 shadow-lg shadow-black/40 hover:border-primary/60 hover:shadow-[0_0_20px_rgba(197,160,89,0.3)] transition-all duration-300 flex items-center justify-between gap-1 w-full text-foreground/90"
+                                    className="mt-3.5 sm:mt-5 flex flex-row items-center justify-center gap-3 sm:gap-4 md:gap-5 select-none"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    {/* RIGHT: Geometric Gold YouTube Icon (Go to YouTube) */}
+                                    {/* RIGHT: Youtube Circular Glass Button (Go to YouTube) */}
                                     <a
                                       href={watchUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      className="w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
                                       title="مشاهدة على يوتيوب"
                                       aria-label="Go to YouTube"
                                     >
-                                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
-                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                      </svg>
+                                      <Youtube strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
                                     </a>
 
-                                    <div className="w-px h-3.5 bg-primary/20" />
-
-                                    {/* MIDDLE: Refined Silver Geometric Share Icon (Share) */}
+                                    {/* MIDDLE: Share Circular Glass Button (Share) */}
                                     <button
                                       onClick={() => handleShare(vid.title, watchUrl)}
-                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-zinc-300 dark:text-zinc-300 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      className="w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
                                       title="مشاركة الفيديو"
                                       aria-label="Share"
                                     >
-                                      <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                                      <Share2 strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
                                     </button>
 
-                                    <div className="w-px h-3.5 bg-primary/20" />
-
-                                    {/* LEFT: Large Geometric Gold Triangle inside Clean Glass Circle (Start Watching / Play) */}
+                                    {/* LEFT: Play Circular Glass Button (Start Watching) */}
                                     <button
                                       onClick={() => {
                                         if (isPlaying) {
@@ -369,14 +363,17 @@ export function Videos() {
                                           setActiveVideoId(vid.id);
                                         }
                                       }}
-                                      className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-primary text-primary-foreground border border-white/20 flex items-center justify-center shadow-md shadow-primary/30 hover:scale-110 hover:bg-primary/90 transition-all duration-300 active:scale-95 cursor-pointer shrink-0"
+                                      className={`w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0 shadow-lg ${isPlaying
+                                        ? "bg-red-500/20 border border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white"
+                                        : "bg-black/60 dark:bg-black/80 border border-primary/40 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300"
+                                        }`}
                                       title={isPlaying ? "إغلاق التشغيل" : "تشغيل الفيديو"}
                                       aria-label="Start Watching"
                                     >
                                       {isPlaying ? (
-                                        <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                                        <Square strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                                       ) : (
-                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px]" />
+                                        <Play strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary fill-primary/30 translate-x-[-0.5px]" />
                                       )}
                                     </button>
                                   </div>
