@@ -296,31 +296,31 @@ export function Videos() {
 
                                         {/* 1) High-Contrast Dark Glassmorphism Pill Container with Gold Geometric Action Icons */}
                                         <div
-                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-1 p-1 rounded-full bg-black/75 dark:bg-black/85 backdrop-blur-xl border border-primary/50 shadow-xl shadow-black/80 hover:border-primary hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] transition-all duration-300 z-30 pointer-events-auto"
+                                          className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 md:top-3 md:left-3 flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-black/75 dark:bg-black/85 backdrop-blur-xl border border-primary/50 shadow-xl shadow-black/80 hover:border-primary hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] transition-all duration-300 z-30 pointer-events-auto"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {/* SHARE ICON */}
                                           <button
                                             onClick={() => handleShare(vid.title, watchUrl)}
-                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
+                                            className="w-6.5 h-6.5 sm:w-8 sm:h-8 md:w-8.5 md:h-8.5 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
                                             title="مشاركة الفيديو"
                                             aria-label="Share Video"
                                           >
-                                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2] text-primary" />
+                                            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 stroke-[2.2] text-primary" />
                                           </button>
 
-                                          <div className="w-px h-3.5 bg-primary/40" />
+                                          <div className="w-px h-3 sm:h-3.5 md:h-4 bg-primary/40" />
 
                                           {/* YOUTUBE GEOMETRIC ICON */}
                                           <a
                                             href={watchUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
+                                            className="w-6.5 h-6.5 sm:w-8 sm:h-8 md:w-8.5 md:h-8.5 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
                                             title="مشاهدة على يوتيوب"
                                             aria-label="Go to YouTube"
                                           >
-                                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
+                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
                                               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                                             </svg>
                                           </a>
@@ -328,16 +328,16 @@ export function Videos() {
 
                                         {/* 2) Center Translucent Dark Glass Play Icon Overlay (Non-verbal) */}
                                         {videoId && (
-                                          <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-11 h-11 sm:w-16 sm:h-16 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-xl border border-primary/40 text-primary flex items-center justify-center shadow-2xl shadow-black/60 group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/80 group-hover/thumb:text-primary-foreground transition-all duration-300">
-                                              <Play className="w-5 h-5 sm:w-7 sm:h-7 fill-white text-white translate-x-[-1px] group-hover/thumb:scale-110 transition-transform duration-300" />
+                                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-xl border border-primary/40 text-primary flex items-center justify-center shadow-2xl shadow-black/60 group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/80 group-hover/thumb:text-primary-foreground transition-all duration-300 pointer-events-auto">
+                                              <Play className="w-4.5 h-4.5 sm:w-6 sm:h-6 md:w-7 md:h-7 fill-white text-white translate-x-[-1px] group-hover/thumb:scale-110 transition-transform duration-300" />
                                             </div>
                                           </div>
                                         )}
 
                                         {/* Floating Sub-category Badge (Top-Right) */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 text-primary text-[8px] sm:text-[10px] font-bold tracking-wide shadow-lg shadow-black/60">
+                                          <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 md:top-3 md:right-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 text-primary text-[7.5px] sm:text-[9px] md:text-[10px] font-bold tracking-wide shadow-lg shadow-black/60 max-w-[80px] sm:max-w-none truncate">
                                             {vid.sub_category}
                                           </div>
                                         )}
