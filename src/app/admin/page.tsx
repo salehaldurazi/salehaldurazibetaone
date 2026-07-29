@@ -1527,3 +1527,231 @@ export default function AdminDashboard() {
               <Button type="button" variant="outline" onClick={() => setEditPoemModalOpen(false)}
                 disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
                 إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video modal */}
+      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+        <DialogContent className="bg-background border-border text-right max-w-lg rounded-[1.5rem] shadow-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-red-500 flex items-center gap-2">
+              <Youtube className="w-4 h-4" />
+              {editingVideo ? "تعديل الفيديو" : "إضافة فيديو يوتيوب"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-foreground/40">
+              الصق رابط يوتيوب — يُستخرج معرّف الفيديو تلقائياً.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveVideo} className="space-y-4 mt-1">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">عنوان الفيديو *</label>
+              <Input value={videoTitle} onChange={e => setVideoTitle(e.target.value)} disabled={actionLoading}
+                placeholder="مثال: إحياء مجلس عاشوراء ١٤٤٧هـ"
+                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رابط يوتيوب *</label>
+                {videoPreviewId && (
+                  <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> صالح · {videoPreviewId}
+                  </span>
+                )}
+              </div>
+              <Input type="url" value={videoYoutubeUrl} onChange={e => handleVideoUrlChange(e.target.value)}
+                disabled={actionLoading} placeholder="https://www.youtube.com/watch?v=…"
+                className={`h-11 text-xs text-left font-mono bg-muted/30 rounded-xl ${
+                  videoUrlError ? "border-red-400" : "border-border"
+                }`}
+                style={{ direction: "ltr" }} />
+              {videoUrlError && <p className="text-[10px] text-red-500">{videoUrlError}</p>}
+              {videoPreviewId && (
+                <div className="relative rounded-xl overflow-hidden aspect-video bg-black border border-border mt-1">
+                  <img
+                    src={`https://img.youtube.com/vi/${videoPreviewId}/maxresdefault.jpg`}
+                    alt="معاينة" className="w-full h-full object-cover opacity-70"
+                    onError={e => {
+                      (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoPreviewId}/mqdefault.jpg`;
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-10 h-10 bg-red-600/80 rounded-full flex items-center justify-center">
+                      <Youtube className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[9px] px-2 py-0.5 rounded-full">
+                    معاينة مباشرة
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الفئة *</label>
+                <Select value={videoCategory} onValueChange={setVideoCategory} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">الجديد</SelectItem>
+                    <SelectItem value="popular">الأكثر مشاهدة</SelectItem>
+                    <SelectItem value="featured">مختارات</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">ترتيب العرض</label>
+                <Input type="number" min="0" value={videoOrder} onChange={e => setVideoOrder(e.target.value)}
+                  disabled={actionLoading}
+                  className="h-11 text-sm text-center font-mono bg-muted/30 border-border rounded-xl"
+                  style={{ direction: "ltr" }} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">التصنيف الفرعي (اختياري)</label>
+              <Input value={videoSubCategory} onChange={e => setVideoSubCategory(e.target.value)} disabled={actionLoading}
+                placeholder="مثال: مجالس العزاء - محرم"
+                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">وصف (اختياري)</label>
+              <Textarea value={videoDescription} onChange={e => setVideoDescription(e.target.value)}
+                disabled={actionLoading} placeholder="وصف مختصر عن الفيديو…"
+                className="text-sm text-right bg-muted/30 border-border rounded-xl resize-none min-h-[60px]" />
+            </div>
+            <DialogFooter className="flex gap-2 pt-1">
+              <Button type="submit" disabled={actionLoading || !!videoUrlError}
+                className="h-10 px-6 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ الفيديو"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setVideoModalOpen(false)}
+                disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Site Update Modal */}
+      <Dialog open={updateModalOpen} onOpenChange={setUpdateModalOpen}>
+        <DialogContent className="bg-background border-border text-right max-w-md rounded-[1.5rem] shadow-2xl" dir="rtl">
+          <DialogHeader className="border-b border-border pb-3">
+            <DialogTitle className="text-base font-bold text-foreground">
+              {editingUpdate ? "تعديل التحديث" : "إضافة تحديث جديد"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveUpdate} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">نص التحديث *</label>
+              <Textarea
+                value={updateContentText}
+                onChange={e => setUpdateContentText(e.target.value)}
+                disabled={actionLoading}
+                placeholder="مثال: تم إضافة ألبوم جديد: يا جرح علي (٢٠٢٤)..."
+                className="text-xs bg-muted/30 border-border rounded-xl min-h-[90px] text-right"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رابط الانتقال (اختياري)</label>
+              <Input
+                value={updateLinkUrl}
+                onChange={e => setUpdateLinkUrl(e.target.value)}
+                disabled={actionLoading}
+                placeholder="مثال: #audio أو https://example.com"
+                className="h-10 text-xs bg-muted/30 border-border rounded-xl text-left font-mono"
+                style={{ direction: "ltr" }}
+              />
+            </div>
+            <DialogFooter className="flex gap-2 pt-2 border-t border-border">
+              <Button type="submit" disabled={actionLoading} className="h-10 px-6 text-xs font-bold rounded-xl shadow-sm">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : editingUpdate ? "حفظ التغييرات" : "إضافة التحديث"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setUpdateModalOpen(false)} disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message detail modal */}
+      <Dialog open={messageModalOpen} onOpenChange={setMessageModalOpen}>
+        <DialogContent className="bg-background border-border text-right max-w-lg rounded-[1.5rem] shadow-2xl" dir="rtl">
+          <DialogHeader className="border-b border-border pb-4">
+            <DialogTitle className="text-base font-bold text-foreground">تفاصيل الرسالة</DialogTitle>
+          </DialogHeader>
+          {selectedMessage && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">المرسل</span>
+                  <span className="font-semibold text-foreground">{safeStr(selectedMessage.name)}</span>
+                </div>
+                <div>
+                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">البريد</span>
+                  <span className="text-foreground" style={{ direction: "ltr" }}>{safeStr(selectedMessage.email)}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">الموضوع</span>
+                  <span className="font-semibold text-primary">{safeStr(selectedMessage.subject)}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">التاريخ</span>
+                  <span className="text-foreground/50">{safeDate(selectedMessage.created_at)}</span>
+                </div>
+              </div>
+              <div>
+                <span className="block text-foreground/35 font-bold text-[9px] mb-2 uppercase tracking-wider">نص الرسالة</span>
+                <div className="bg-muted/40 border border-border rounded-xl p-4 text-xs text-foreground/70 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
+                  {safeStr(selectedMessage.message)}
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => { setMessageModalOpen(false); requestDelete("message", selectedMessage.id, safeStr(selectedMessage.subject)); }}
+                  className="h-9 text-xs text-red-500 border-red-200 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl px-4">
+                  <Trash2 className="w-3.5 h-3.5 ml-1.5" /> حذف
+                </Button>
+                <Button variant="outline" onClick={() => setMessageModalOpen(false)}
+                  className="h-9 text-xs rounded-xl border-border px-5">إغلاق</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="bg-background border border-red-200 dark:border-red-900/30 text-right max-w-sm rounded-[1.5rem] shadow-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-red-500">تأكيد الحذف</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-foreground/55 py-2 leading-relaxed">
+            هل أنت متأكد من حذف{" "}
+            <span className="font-semibold text-foreground">"{deleteTarget?.label ?? "هذا العنصر"}"</span>{" "}
+            نهائياً؟ لا يمكن التراجع عن هذه العملية.
+          </p>
+          <DialogFooter className="flex gap-2">
+            <Button onClick={executeDelete} disabled={actionLoading}
+              className="h-10 px-6 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white">
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حذف نهائي"}
+            </Button>
+            <Button variant="outline"
+              onClick={() => { setDeleteConfirmOpen(false); setDeleteTarget(null); }}
+              disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Toaster />
+    </div>
+  );
+}
