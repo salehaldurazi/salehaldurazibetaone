@@ -231,7 +231,7 @@ export function Videos() {
                             <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
                               <CardContent className="p-0 flex flex-col h-full">
 
-                                {/* 1. Video Player / Box Area with Dynamic Non-Verbal Geometric Overlay Icons */}
+                                {/* 1. Video Thumbnail / Player Container */}
                                 <div className="relative aspect-video overflow-hidden bg-black/95">
                                   <AnimatePresence mode="wait">
                                     {isPlaying && embedUrl ? (
@@ -251,7 +251,6 @@ export function Videos() {
                                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                           allowFullScreen
                                         />
-                                        {/* Floating Close Button for Active Player */}
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -283,7 +282,7 @@ export function Videos() {
                                             fill
                                             sizes="(max-width: 768px) 50vw, 50vw"
                                             referrerPolicy="no-referrer"
-                                            className="object-cover scale-100 group-hover/thumb:scale-105 transition-transform duration-700 ease-out brightness-[0.85] group-hover/thumb:brightness-100"
+                                            className="object-cover scale-100 group-hover/thumb:scale-105 transition-transform duration-700 ease-out brightness-[0.88] group-hover/thumb:brightness-100"
                                           />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-600 text-xs">
@@ -291,53 +290,12 @@ export function Videos() {
                                           </div>
                                         )}
 
-                                        {/* Premium Ambient Vignette Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40 transition-opacity duration-500" />
-
-                                        {/* 1) High-Contrast Dark Glassmorphism Pill Container with Gold Geometric Action Icons */}
-                                        <div
-                                          className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 md:top-3 md:left-3 flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-black/75 dark:bg-black/85 backdrop-blur-xl border border-primary/50 shadow-xl shadow-black/80 hover:border-primary hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] transition-all duration-300 z-30 pointer-events-auto"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {/* SHARE ICON */}
-                                          <button
-                                            onClick={() => handleShare(vid.title, watchUrl)}
-                                            className="w-6.5 h-6.5 sm:w-8 sm:h-8 md:w-8.5 md:h-8.5 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
-                                            title="مشاركة الفيديو"
-                                            aria-label="Share Video"
-                                          >
-                                            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 stroke-[2.2] text-primary" />
-                                          </button>
-
-                                          <div className="w-px h-3 sm:h-3.5 md:h-4 bg-primary/40" />
-
-                                          {/* YOUTUBE GEOMETRIC ICON */}
-                                          <a
-                                            href={watchUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="w-6.5 h-6.5 sm:w-8 sm:h-8 md:w-8.5 md:h-8.5 rounded-full text-primary hover:text-amber-300 hover:bg-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-115 active:scale-95 cursor-pointer shrink-0"
-                                            title="مشاهدة على يوتيوب"
-                                            aria-label="Go to YouTube"
-                                          >
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
-                                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                            </svg>
-                                          </a>
-                                        </div>
-
-                                        {/* 2) Center Translucent Dark Glass Play Icon Overlay (Non-verbal) */}
-                                        {videoId && (
-                                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-xl border border-primary/40 text-primary flex items-center justify-center shadow-2xl shadow-black/60 group-hover/thumb:scale-110 group-hover/thumb:bg-primary group-hover/thumb:border-primary/80 group-hover/thumb:text-primary-foreground transition-all duration-300 pointer-events-auto">
-                                              <Play className="w-4.5 h-4.5 sm:w-6 sm:h-6 md:w-7 md:h-7 fill-white text-white translate-x-[-1px] group-hover/thumb:scale-110 transition-transform duration-300" />
-                                            </div>
-                                          </div>
-                                        )}
+                                        {/* Ambient Vignette Gradient */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 transition-opacity duration-500" />
 
                                         {/* Floating Sub-category Badge (Top-Right) */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 md:top-3 md:right-3 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/40 text-primary text-[7.5px] sm:text-[9px] md:text-[10px] font-bold tracking-wide shadow-lg shadow-black/60 max-w-[80px] sm:max-w-none truncate">
+                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/30 text-primary text-[7.5px] sm:text-[9px] md:text-[10px] font-bold tracking-wide shadow-md max-w-[90px] sm:max-w-none truncate">
                                             {vid.sub_category}
                                           </div>
                                         )}
@@ -346,10 +304,10 @@ export function Videos() {
                                   </AnimatePresence>
                                 </div>
 
-                                {/* 2. Text & Metadata Area (Clean layout without separate text buttons) */}
+                                {/* 2. Metadata & Unified Glassmorphic Action Bar (Beneath Title & Description) */}
                                 <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
                                   <div>
-                                    <div className="flex items-center justify-between flex-row-reverse gap-2">
+                                    <div className="flex items-center justify-between flex-row-reverse gap-2 mb-1">
                                       {vid.created_at && (
                                         <span className="text-[9px] sm:text-[10px] font-mono text-foreground/40 dark:text-white/30">
                                           {new Date(vid.created_at).toLocaleDateString("ar-BH", { year: "numeric", month: "short" })}
@@ -361,11 +319,66 @@ export function Videos() {
                                       {vid.title ?? "بدون عنوان"}
                                     </h3>
 
+                                    {/* Video Description */}
                                     {vid.description && (
                                       <p className="text-[10px] sm:text-xs text-foreground/50 leading-tight sm:leading-relaxed line-clamp-2 mt-1">
                                         {vid.description}
                                       </p>
                                     )}
+                                  </div>
+
+                                  {/* UNIFIED PREMIUM GLASSMORPHISM PILL CONTAINER (Non-Verbal Geometric Icons Only) */}
+                                  <div
+                                    className="mt-3 sm:mt-4 p-1 sm:p-1.5 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/30 shadow-lg shadow-black/40 hover:border-primary/60 hover:shadow-[0_0_20px_rgba(197,160,89,0.3)] transition-all duration-300 flex items-center justify-between gap-1 w-full text-foreground/90"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {/* RIGHT: Geometric Gold YouTube Icon (Go to YouTube) */}
+                                    <a
+                                      href={watchUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-primary hover:text-amber-300 hover:bg-primary/20 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      title="مشاهدة على يوتيوب"
+                                      aria-label="Go to YouTube"
+                                    >
+                                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-primary hover:fill-amber-300 transition-colors" viewBox="0 0 24 24">
+                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                                      </svg>
+                                    </a>
+
+                                    <div className="w-px h-3.5 bg-primary/20" />
+
+                                    {/* MIDDLE: Refined Silver Geometric Share Icon (Share) */}
+                                    <button
+                                      onClick={() => handleShare(vid.title, watchUrl)}
+                                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full text-zinc-300 dark:text-zinc-300 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      title="مشاركة الفيديو"
+                                      aria-label="Share"
+                                    >
+                                      <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
+                                    </button>
+
+                                    <div className="w-px h-3.5 bg-primary/20" />
+
+                                    {/* LEFT: Large Geometric Gold Triangle inside Clean Glass Circle (Start Watching / Play) */}
+                                    <button
+                                      onClick={() => {
+                                        if (isPlaying) {
+                                          setActiveVideoId(null);
+                                        } else if (videoId) {
+                                          setActiveVideoId(vid.id);
+                                        }
+                                      }}
+                                      className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-primary text-primary-foreground border border-white/20 flex items-center justify-center shadow-md shadow-primary/30 hover:scale-110 hover:bg-primary/90 transition-all duration-300 active:scale-95 cursor-pointer shrink-0"
+                                      title={isPlaying ? "إغلاق التشغيل" : "تشغيل الفيديو"}
+                                      aria-label="Start Watching"
+                                    >
+                                      {isPlaying ? (
+                                        <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                                      ) : (
+                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px]" />
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
 
