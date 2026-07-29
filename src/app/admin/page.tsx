@@ -20,6 +20,7 @@ import {
   Plus, Edit2, Trash2, ExternalLink, Loader2, Search,
   CheckCircle2, RefreshCw, Eye, AlertTriangle, Link2,
   Youtube, Video, X, ChevronDown, ChevronRight, EyeOff,
+  Bell, Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -91,6 +92,38 @@ interface VideoItem {
   created_at?: string | null;
 }
 
+interface SiteUpdate {
+  id: number | string;
+  content: string;
+  link?: string | null;
+  is_visible?: boolean;
+  created_at?: string | null;
+}
+
+const FALLBACK_SITE_UPDATES: SiteUpdate[] = [
+  {
+    id: "f-1",
+    content: "تم إضافة إصدار جديد: ألبوم 'يا جرح علي' في مكتبة الصوتيات",
+    link: "#audio",
+    is_visible: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "f-2",
+    content: "تحديث أدعية ومناجاة ليلة الجمعة المباركة بمرئيات عالية الجودة",
+    link: "#audio",
+    is_visible: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "f-3",
+    content: "مكتبة المرئيات الرسمية أصبحت متاحة الآن مع باقة من اللطميات المصورة",
+    link: "#videos",
+    is_visible: true,
+    created_at: new Date().toISOString(),
+  },
+];
+
 // ─────────────────────────────────────────────
 // SAFE HELPERS
 // ─────────────────────────────────────────────
@@ -142,7 +175,7 @@ function getVideoCategoryLabel(cat: string | null | undefined): string {
 // ─────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────
-type Tab = "overview" | "management" | "messages" | "videos";
+type Tab = "overview" | "management" | "updates" | "messages" | "videos";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -153,6 +186,7 @@ export default function AdminDashboard() {
   const [audios, setAudios] = useState<AudioTrack[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [siteUpdates, setSiteUpdates] = useState<SiteUpdate[]>(FALLBACK_SITE_UPDATES);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -166,6 +200,7 @@ export default function AdminDashboard() {
   const [poemModalOpen, setPoemModalOpen] = useState(false);
   const [editPoemModalOpen, setEditPoemModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -174,6 +209,11 @@ export default function AdminDashboard() {
   const [albumTitle, setAlbumTitle] = useState("");
   const [albumYear, setAlbumYear] = useState("");
   const [albumCategory, setAlbumCategory] = useState("sorrow");
+
+  // ── Site Update form ────────────────────────
+  const [editingUpdate, setEditingUpdate] = useState<SiteUpdate | null>(null);
+  const [updateContentText, setUpdateContentText] = useState("");
+  const [updateLinkUrl, setUpdateLinkUrl] = useState("");
 
   // ── Add-Poems form (multi-entry) ─────────────
   const [poemModalAlbumId, setPoemModalAlbumId] = useState<number | null>(null);
@@ -205,7 +245,7 @@ export default function AdminDashboard() {
 
   // ── Delete target ────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<{
-    type: "album" | "audio" | "message" | "video";
+    type: "album" | "audio" | "message" | "video" | "update";
     id: number | string;
     label?: string;
   } | null>(null);
@@ -244,6 +284,18 @@ export default function AdminDashboard() {
         setAudios(data ?? []);
       }
     } catch { setAudios([]); }
+
+    // Site Updates — non-fatal
+    try {
+      const { data, error } = await supabase
+        .from("site_updates")
+        .select("id, content, link, is_visible, created_at")
+        .order("created_at", { ascending: false });
+      if (error) setSiteUpdates(FALLBACK_SITE_UPDATES);
+      else setSiteUpdates(data && data.length > 0 ? data : FALLBACK_SITE_UPDATES);
+    } catch {
+      setSiteUpdates(FALLBACK_SITE_UPDATES);
+    }
 
     // Videos — non-fatal
     try {
@@ -523,16 +575,77 @@ export default function AdminDashboard() {
   }
 
   // ─────────────────────────────────────────────
+  // SITE UPDATES CRUD
+  // ─────────────────────────────────────────────
+  function openCreateUpdateModal() {
+    setEditingUpdate(null);
+    setUpdateContentText("");
+    setUpdateLinkUrl("");
+    setUpdateModalOpen(true);
+  }
+
+  function openEditUpdateModal(updateItem: SiteUpdate) {
+    setEditingUpdate(updateItem);
+    setUpdateContentText(safeStr(updateItem.content, ""));
+    setUpdateLinkUrl(safeStr(updateItem.link, ""));
+    setUpdateModalOpen(true);
+  }
+
+  async function handleSaveUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!updateContentText.trim()) {
+      toast({ title: "خطأ", description: "نص التحديث مطلوب.", variant: "destructive" });
+      return;
+    }
+    const payload = {
+      content: updateContentText.trim(),
+      link: updateLinkUrl.trim() || null,
+    };
+    setActionLoading(true);
+    try {
+      if (editingUpdate) {
+        const { error } = await supabase.from("site_updates").update(payload).eq("id", editingUpdate.id);
+        if (error) throw error;
+        toast({ title: "✓ تم التحديث", description: "تم تحديث التحديث بنجاح." });
+      } else {
+        const { error } = await supabase.from("site_updates").insert([{ ...payload, is_visible: true }]);
+        if (error) throw error;
+        toast({ title: "✓ تم الإضافة", description: "تمت إضافة التحديث بنجاح." });
+      }
+      setUpdateModalOpen(false);
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
+    } finally { setActionLoading(false); }
+  }
+
+  async function handleToggleUpdateVisibility(id: number | string, currentVisible: boolean) {
+    const newVisible = !currentVisible;
+    setSiteUpdates(prev => prev.map(u => u.id === id ? { ...u, is_visible: newVisible } : u));
+    try {
+      const { error } = await supabase.from("site_updates").update({ is_visible: newVisible }).eq("id", id);
+      if (error) throw error;
+      toast({
+        title: newVisible ? "✓ ظاهر الآن" : "✓ مخفي الآن",
+        description: newVisible ? "سيظهر التحديث في الشريط الرئيسي." : "لن يظهر التحديث للمستخدمين.",
+      });
+    } catch (err: any) {
+      setSiteUpdates(prev => prev.map(u => u.id === id ? { ...u, is_visible: currentVisible } : u));
+      toast({ title: "خطأ في التحديث", description: err.message, variant: "destructive" });
+    }
+  }
+
+  // ─────────────────────────────────────────────
   // DELETE
   // ─────────────────────────────────────────────
-  function requestDelete(type: "album" | "audio" | "message" | "video", id: number | string, label?: string) {
+  function requestDelete(type: "album" | "audio" | "message" | "video" | "update", id: number | string, label?: string) {
     setDeleteTarget({ type, id, label });
     setDeleteConfirmOpen(true);
   }
   async function executeDelete() {
     if (!deleteTarget) return;
     const tableMap: Record<string, string> = {
-      album: "albums", audio: "audios", message: "messages", video: "videos",
+      album: "albums", audio: "audios", message: "messages", video: "videos", update: "site_updates",
     };
     setActionLoading(true);
     try {
@@ -558,6 +671,12 @@ export default function AdminDashboard() {
     normalizeArabic(a.title).includes(q) ||
     normalizeArabic(a.year).includes(q) ||
     normalizeArabic(getCategoryLabel(a.category)).includes(q)
+  );
+
+  const filteredUpdates = siteUpdates.filter(u =>
+    !q ||
+    normalizeArabic(u.content).includes(q) ||
+    normalizeArabic(u.link).includes(q)
   );
 
   const getAlbumPoems = (albumId: number) =>
@@ -626,6 +745,7 @@ export default function AdminDashboard() {
           <nav className="space-y-0.5">
             <NavBtn tab="overview" icon={LayoutDashboard} label="الإحصائيات" />
             <NavBtn tab="management" icon={FolderHeart} label="الألبومات والقصائد" count={albums.length} />
+            <NavBtn tab="updates" icon={Bell} label="شريط التحديثات" count={siteUpdates.length} />
             <NavBtn tab="videos" icon={Youtube} label="المرئيات" count={videos.length} />
             <NavBtn tab="messages" icon={Mail} label="الرسائل" count={messages.length} />
           </nav>
@@ -662,6 +782,7 @@ export default function AdminDashboard() {
               <SelectContent>
                 <SelectItem value="overview">الإحصائيات</SelectItem>
                 <SelectItem value="management">الألبومات</SelectItem>
+                <SelectItem value="updates">التحديثات</SelectItem>
                 <SelectItem value="videos">المرئيات</SelectItem>
                 <SelectItem value="messages">الرسائل</SelectItem>
               </SelectContent>
@@ -701,12 +822,14 @@ export default function AdminDashboard() {
                 <h1 className="text-lg font-bold text-foreground">
                   {activeTab === "overview" && "الإحصائيات العامة"}
                   {activeTab === "management" && "إدارة الألبومات والقصائد"}
+                  {activeTab === "updates" && "إدارة شريط التحديثات"}
                   {activeTab === "videos" && "إدارة المرئيات"}
                   {activeTab === "messages" && "الرسائل الواردة"}
                 </h1>
                 <p className="text-[11px] text-foreground/40 mt-0.5">
                   {activeTab === "overview" && "ملخص شامل لمحتوى قاعدة البيانات."}
                   {activeTab === "management" && "انقر على ألبوم لعرض قصائده وإدارتها."}
+                  {activeTab === "updates" && "إضافة وتعديل التحديثات المتحركة في أعلى الموقع."}
                   {activeTab === "videos" && "أضف مرئيات يوتيوب بلصق الرابط مباشرةً."}
                   {activeTab === "messages" && "الرسائل الواردة من نموذج التواصل."}
                 </p>
@@ -720,6 +843,12 @@ export default function AdminDashboard() {
                   <Button onClick={openCreateAlbumModal}
                     className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm">
                     <Plus className="w-3.5 h-3.5 ml-1.5" /> ألبوم جديد
+                  </Button>
+                )}
+                {activeTab === "updates" && (
+                  <Button onClick={openCreateUpdateModal}
+                    className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm">
+                    <Plus className="w-3.5 h-3.5 ml-1.5" /> تحديث جديد
                   </Button>
                 )}
                 {activeTab === "videos" && (
@@ -740,6 +869,7 @@ export default function AdminDashboard() {
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={
                     activeTab === "management" ? "ابحث في الألبومات والقصائد…"
+                    : activeTab === "updates" ? "ابحث في التحديثات…"
                     : activeTab === "videos" ? "ابحث في المرئيات…"
                     : "ابحث في الرسائل…"
                   }
@@ -1019,6 +1149,61 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ══ UPDATES ═══════════════════════ */}
+            {activeTab === "updates" && (
+              <div className="space-y-2.5">
+                {filteredUpdates.length === 0 ? (
+                  <div className="bg-card border border-border rounded-2xl py-16 text-center">
+                    <Bell className="w-10 h-10 text-foreground/15 mx-auto mb-3" />
+                    <p className="text-sm text-foreground/40">{searchQuery ? "لا نتائج مطابقة." : "لا توجد تحديثات حالية."}</p>
+                    {!searchQuery && (
+                      <Button onClick={openCreateUpdateModal} size="sm" className="mt-4 rounded-xl">
+                        <Plus className="w-3.5 h-3.5 ml-1.5" /> إضافة تحديث جديد
+                      </Button>
+                    )}
+                  </div>
+                ) : filteredUpdates.map(updateItem => {
+                  const isVisible = updateItem.is_visible !== false;
+                  return (
+                    <div key={updateItem.id}
+                      className={`bg-card border rounded-2xl p-4 flex items-center justify-between gap-4 transition-all ${
+                        isVisible ? "border-border shadow-sm" : "border-border/50 opacity-60"
+                      }`}>
+                      <div className="flex-1 min-w-0 text-right">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-semibold text-foreground">{safeStr(updateItem.content)}</span>
+                          {!isVisible && <span className="text-[9px] text-foreground/40 bg-muted px-2 py-0.5 rounded-full font-bold">مخفي</span>}
+                        </div>
+                        {updateItem.link && (
+                          <a href={updateItem.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block mt-1 truncate font-mono text-[11px]" dir="ltr">
+                            {updateItem.link}
+                          </a>
+                        )}
+                        <span className="text-[10px] text-foreground/35 block mt-1">{safeDate(updateItem.created_at)}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <VisibilityToggle
+                          checked={isVisible}
+                          onCheckedChange={() => handleToggleUpdateVisibility(updateItem.id, isVisible)}
+                        />
+                        <button onClick={() => openEditUpdateModal(updateItem)}
+                          className="p-2 rounded-xl text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="تعديل">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => requestDelete("update", updateItem.id, safeStr(updateItem.content))}
+                          className="p-2 rounded-xl text-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="حذف">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1342,188 +1527,3 @@ export default function AdminDashboard() {
               <Button type="button" variant="outline" onClick={() => setEditPoemModalOpen(false)}
                 disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
                 إلغاء
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Video modal */}
-      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="bg-background border-border text-right max-w-lg rounded-[1.5rem] shadow-2xl" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-red-500 flex items-center gap-2">
-              <Youtube className="w-4 h-4" />
-              {editingVideo ? "تعديل الفيديو" : "إضافة فيديو يوتيوب"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-foreground/40">
-              الصق رابط يوتيوب — يُستخرج معرّف الفيديو تلقائياً.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveVideo} className="space-y-4 mt-1">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">عنوان الفيديو *</label>
-              <Input value={videoTitle} onChange={e => setVideoTitle(e.target.value)} disabled={actionLoading}
-                placeholder="مثال: إحياء مجلس عاشوراء ١٤٤٧هـ"
-                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رابط يوتيوب *</label>
-                {videoPreviewId && (
-                  <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-2.5 h-2.5" /> صالح · {videoPreviewId}
-                  </span>
-                )}
-              </div>
-              <Input type="url" value={videoYoutubeUrl} onChange={e => handleVideoUrlChange(e.target.value)}
-                disabled={actionLoading} placeholder="https://www.youtube.com/watch?v=…"
-                className={`h-11 text-xs text-left font-mono bg-muted/30 rounded-xl ${
-                  videoUrlError ? "border-red-400" : "border-border"
-                }`}
-                style={{ direction: "ltr" }} />
-              {videoUrlError && <p className="text-[10px] text-red-500">{videoUrlError}</p>}
-              {videoPreviewId && (
-                <div className="relative rounded-xl overflow-hidden aspect-video bg-black border border-border mt-1">
-                  <img
-                    src={`https://img.youtube.com/vi/${videoPreviewId}/maxresdefault.jpg`}
-                    alt="معاينة" className="w-full h-full object-cover opacity-70"
-                    onError={e => {
-                      (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoPreviewId}/mqdefault.jpg`;
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 bg-red-600/80 rounded-full flex items-center justify-center">
-                      <Youtube className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[9px] px-2 py-0.5 rounded-full">
-                    معاينة مباشرة
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الفئة *</label>
-                <Select value={videoCategory} onValueChange={setVideoCategory} disabled={actionLoading}>
-                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">الجديد</SelectItem>
-                    <SelectItem value="popular">الأكثر مشاهدة</SelectItem>
-                    <SelectItem value="featured">مختارات</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">ترتيب العرض</label>
-                <Input type="number" min="0" value={videoOrder} onChange={e => setVideoOrder(e.target.value)}
-                  disabled={actionLoading}
-                  className="h-11 text-sm text-center font-mono bg-muted/30 border-border rounded-xl"
-                  style={{ direction: "ltr" }} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">التصنيف الفرعي (اختياري)</label>
-              <Input value={videoSubCategory} onChange={e => setVideoSubCategory(e.target.value)} disabled={actionLoading}
-                placeholder="مثال: مجالس العزاء - محرم"
-                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">وصف (اختياري)</label>
-              <Textarea value={videoDescription} onChange={e => setVideoDescription(e.target.value)}
-                disabled={actionLoading} placeholder="وصف مختصر عن الفيديو…"
-                className="text-sm text-right bg-muted/30 border-border rounded-xl resize-none min-h-[60px]" />
-            </div>
-            <DialogFooter className="flex gap-2 pt-1">
-              <Button type="submit" disabled={actionLoading || !!videoUrlError}
-                className="h-10 px-6 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white">
-                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ الفيديو"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setVideoModalOpen(false)}
-                disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
-                إلغاء
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Message detail modal */}
-      <Dialog open={messageModalOpen} onOpenChange={setMessageModalOpen}>
-        <DialogContent className="bg-background border-border text-right max-w-lg rounded-[1.5rem] shadow-2xl" dir="rtl">
-          <DialogHeader className="border-b border-border pb-4">
-            <DialogTitle className="text-base font-bold text-foreground">تفاصيل الرسالة</DialogTitle>
-          </DialogHeader>
-          {selectedMessage && (
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">المرسل</span>
-                  <span className="font-semibold text-foreground">{safeStr(selectedMessage.name)}</span>
-                </div>
-                <div>
-                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">البريد</span>
-                  <span className="text-foreground" style={{ direction: "ltr" }}>{safeStr(selectedMessage.email)}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">الموضوع</span>
-                  <span className="font-semibold text-primary">{safeStr(selectedMessage.subject)}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="block text-foreground/35 font-bold text-[9px] mb-1 uppercase tracking-wider">التاريخ</span>
-                  <span className="text-foreground/50">{safeDate(selectedMessage.created_at)}</span>
-                </div>
-              </div>
-              <div>
-                <span className="block text-foreground/35 font-bold text-[9px] mb-2 uppercase tracking-wider">نص الرسالة</span>
-                <div className="bg-muted/40 border border-border rounded-xl p-4 text-xs text-foreground/70 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
-                  {safeStr(selectedMessage.message)}
-                </div>
-              </div>
-              <div className="flex justify-between items-center pt-1 border-t border-border">
-                <Button
-                  variant="outline"
-                  onClick={() => { setMessageModalOpen(false); requestDelete("message", selectedMessage.id, safeStr(selectedMessage.subject)); }}
-                  className="h-9 text-xs text-red-500 border-red-200 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl px-4">
-                  <Trash2 className="w-3.5 h-3.5 ml-1.5" /> حذف
-                </Button>
-                <Button variant="outline" onClick={() => setMessageModalOpen(false)}
-                  className="h-9 text-xs rounded-xl border-border px-5">إغلاق</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete confirm modal */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="bg-background border border-red-200 dark:border-red-900/30 text-right max-w-sm rounded-[1.5rem] shadow-2xl" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-red-500">تأكيد الحذف</DialogTitle>
-          </DialogHeader>
-          <p className="text-xs text-foreground/55 py-2 leading-relaxed">
-            هل أنت متأكد من حذف{" "}
-            <span className="font-semibold text-foreground">"{deleteTarget?.label ?? "هذا العنصر"}"</span>{" "}
-            نهائياً؟ لا يمكن التراجع عن هذه العملية.
-          </p>
-          <DialogFooter className="flex gap-2">
-            <Button onClick={executeDelete} disabled={actionLoading}
-              className="h-10 px-6 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حذف نهائي"}
-            </Button>
-            <Button variant="outline"
-              onClick={() => { setDeleteConfirmOpen(false); setDeleteTarget(null); }}
-              disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
-              إلغاء
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Toaster />
-    </div>
-  );
-}
