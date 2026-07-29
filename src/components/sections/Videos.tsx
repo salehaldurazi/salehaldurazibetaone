@@ -329,7 +329,7 @@ export function Videos() {
 
                                   {/* 3 PERFECTLY CENTERED & IDENTICAL GLASSMORPHISM CIRCULAR BUTTONS */}
                                   <div
-                                    className="mt-3.5 sm:mt-5 flex flex-row items-center justify-center gap-3 sm:gap-4 md:gap-5 select-none"
+                                    className="mt-3.5 sm:mt-5 flex flex-row items-center justify-center gap-3 sm:gap-5 select-none w-full"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     {/* RIGHT: Youtube Circular Glass Button (Go to YouTube) */}
@@ -337,21 +337,21 @@ export function Videos() {
                                       href={watchUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      className="w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer"
                                       title="مشاهدة على يوتيوب"
                                       aria-label="Go to YouTube"
                                     >
-                                      <Youtube strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
+                                      <Youtube strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                                     </a>
 
                                     {/* MIDDLE: Share Circular Glass Button (Share) */}
                                     <button
                                       onClick={() => handleShare(vid.title, watchUrl)}
-                                      className="w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                                      className="w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer"
                                       title="مشاركة الفيديو"
                                       aria-label="Share"
                                     >
-                                      <Share2 strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
+                                      <Share2 strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                                     </button>
 
                                     {/* LEFT: Play Circular Glass Button (Start Watching) */}
@@ -363,7 +363,7 @@ export function Videos() {
                                           setActiveVideoId(vid.id);
                                         }
                                       }}
-                                      className={`w-9.5 h-9.5 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shrink-0 shadow-lg ${isPlaying
+                                      className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shadow-lg ${isPlaying
                                         ? "bg-red-500/20 border border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white"
                                         : "bg-black/60 dark:bg-black/80 border border-primary/40 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300"
                                         }`}
@@ -371,9 +371,9 @@ export function Videos() {
                                       aria-label="Start Watching"
                                     >
                                       {isPlaying ? (
-                                        <Square strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                                        <Square strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current" />
                                       ) : (
-                                        <Play strokeWidth={1.5} className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary fill-primary/30 translate-x-[-0.5px]" />
+                                        <Play strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary fill-primary/30 translate-x-[-0.5px]" />
                                       )}
                                     </button>
                                   </div>
