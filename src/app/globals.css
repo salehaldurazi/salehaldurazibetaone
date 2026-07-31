@@ -29,27 +29,30 @@
   .light,
   html.light,
   body.light {
-    --background: 30 14% 96%;
-    /* #F8F6F4 */
-    --foreground: 30 13% 11%;
-    /* Deep charcoal text */
+    --background: 210 20% 98%;
+    /* #f8fafc */
+    --foreground: 210 25% 12%;
+    /* Deep slate charcoal text */
     --card: 0 0% 100%;
     /* Pure white cards */
-    --card-foreground: 30 13% 11%;
+    --card-foreground: 210 25% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 30 13% 11%;
-    --primary: 39 50% 56%;
-    --primary-foreground: 30 15% 5%;
-    --secondary: 11 72% 37%;
+    --popover-foreground: 210 25% 12%;
+    --primary: 39 55% 42%;
+    /* Rich gold/bronze for better readability in light mode */
+    --primary-foreground: 210 20% 98%;
+    --secondary: 210 15% 25%;
+    /* Deep slate secondary */
     --secondary-foreground: 0 0% 100%;
-    --muted: 30 12% 90%;
-    --muted-foreground: 30 10% 40%;
-    --accent: 39 50% 56%;
-    --accent-foreground: 30 15% 5%;
-    --border: 30 15% 85%;
-    /* Soft light border */
-    --input: 30 15% 88%;
-    --ring: 39 50% 56%;
+    --muted: 210 15% 94%;
+    /* Soft grey */
+    --muted-foreground: 210 10% 45%;
+    --accent: 39 55% 42%;
+    --accent-foreground: 210 20% 98%;
+    --border: 210 15% 90%;
+    /* Clean soft border */
+    --input: 210 15% 88%;
+    --ring: 39 55% 42%;
   }
 }
 
