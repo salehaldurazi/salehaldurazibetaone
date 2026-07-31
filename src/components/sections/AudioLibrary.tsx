@@ -1428,7 +1428,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {/* ── Folder Cards Grid ── */}
                   {visibleFolders.length > 0 && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto" dir="rtl">
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
                         <AnimatePresence mode="popLayout">
                           {visibleFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
@@ -1452,22 +1452,22 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   onClick={() => setCurrentFolderView(folder)}
                                   className="w-full text-start group"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-                                    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4" dir="rtl">
-                                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-xl sm:rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                                    <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-1.5 sm:gap-4" dir="rtl">
+                                      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
                                         {/* Glowing gold icon */}
-                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
+                                        <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
                                           {isAlbumsOnly ? (
-                                            <FolderHeart className="w-5 h-5" />
+                                            <FolderHeart className="w-4 h-4 sm:w-5 sm:h-5" />
                                           ) : (
-                                            <Music className="w-5 h-5" />
+                                            <Music className="w-4 h-4 sm:w-5 sm:h-5" />
                                           )}
                                         </div>
-                                        <div className="min-w-0">
-                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
+                                        <div className="min-w-0 flex-1 overflow-hidden">
+                                          <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
                                             {folder.name}
                                           </h3>
-                                          <p className="text-[9px] sm:text-[10px] text-foreground/40 mt-0.5">
+                                          <p className="text-[8px] sm:text-[10px] text-foreground/40 mt-0.5 whitespace-nowrap truncate">
                                             {isAlbumsOnly
                                               ? `${folderItemCount} ألبوم`
                                               : `${folderItemCount} قصيدة`
@@ -1476,8 +1476,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
                                       {/* Arrow indicator */}
-                                      <div className="w-8 h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
-                                        <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
+                                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 -rotate-90" />
                                       </div>
                                     </CardContent>
                                   </Card>
