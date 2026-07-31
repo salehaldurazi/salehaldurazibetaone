@@ -27,6 +27,7 @@ interface Track {
   audioUrl?: string;
   audio_url?: string;
   album_id?: string | number;
+  folder_id?: string | number | null;
 }
 
 interface AudioPlayerProps {
@@ -112,34 +113,34 @@ export function AudioPlayer({
       album: albumName,
       artwork: [
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "96x96",
-          type: "image/png",
+          type: "image/webp",
         },
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "128x128",
-          type: "image/png",
+          type: "image/webp",
         },
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "192x192",
-          type: "image/png",
+          type: "image/webp",
         },
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "256x256",
-          type: "image/png",
+          type: "image/webp",
         },
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "384x384",
-          type: "image/png",
+          type: "image/webp",
         },
         {
-          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png",
+          src: "https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp",
           sizes: "512x512",
-          type: "image/png",
+          type: "image/webp",
         },
       ],
     });
@@ -284,6 +285,7 @@ export function AudioPlayer({
           track,
           albumTitle: track.album,
           albumId: track.album_id,
+          folderId: track.folder_id,
         },
       })
     );
@@ -415,7 +417,7 @@ export function AudioPlayer({
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-primary/20">
                 <Image
-                  src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png"
+                  src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp"
                   alt="غلاف"
                   fill
                   className="object-cover"
@@ -439,7 +441,7 @@ export function AudioPlayer({
               <div className="flex items-center gap-2.5 text-right min-w-0">
                 <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/30 shadow-2xl">
                   <Image
-                    src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.png"
+                    src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/cover.webp"
                     alt="غلاف"
                     fill
                     className="object-cover"
