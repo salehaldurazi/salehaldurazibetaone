@@ -234,21 +234,27 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [standaloneQasaed, setStandaloneQasaed] = useState<Track[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState<number>(5);
+  const [visibleCount, setVisibleCount] = useState<number>(3);
+  const [showAllFolders, setShowAllFolders] = useState<boolean>(false);
+  const [showAllStandalone, setShowAllStandalone] = useState<boolean>(false);
   const [expandedAlbumId, setExpandedAlbumId] = useState<string | number | null>(null);
   const [sharedAlbumId, setSharedAlbumId] = useState<string | number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [currentFolderView, setCurrentFolderView] = useState<AudioFolder | null>(null);
 
-  // Reset visibleCount and currentFolderView when activeCategory changes
+  // Reset visibleCount, showAllFolders, showAllStandalone and currentFolderView when activeCategory changes
   useEffect(() => {
-    setVisibleCount(5);
+    setVisibleCount(3);
+    setShowAllFolders(false);
+    setShowAllStandalone(false);
     setCurrentFolderView(null);
   }, [activeCategory]);
 
-  // Reset visibleCount when searchQuery changes
+  // Reset visibleCount, showAllFolders, showAllStandalone when searchQuery changes
   useEffect(() => {
-    setVisibleCount(5);
+    setVisibleCount(3);
+    setShowAllFolders(false);
+    setShowAllStandalone(false);
   }, [searchQuery]);
 
   // معالجة مشاركة المقاطع الصوتية عند فتح رابط يحتوي على معرف المقطع
@@ -417,7 +423,11 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   }, [liveAlbums, liveFolders, standaloneQasaed]);
 
   const handleShowAll = () => {
-    setVisibleCount(filteredAndSortedAlbums.length);
+    if (visibleCount >= filteredAndSortedAlbums.length) {
+      setVisibleCount(3);
+    } else {
+      setVisibleCount(filteredAndSortedAlbums.length);
+    }
   };
 
   /**
@@ -734,6 +744,10 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     }
     return result;
   }, [liveFolders, activeCategory, searchQuery, liveAlbums, standaloneQasaed]);
+
+  const displayedFolders = useMemo(() => {
+    return showAllFolders ? visibleFolders : visibleFolders.slice(0, 3);
+  }, [visibleFolders, showAllFolders]);
 
   /**
    * تصفية وفرز الألبومات بناءً على الفئة، البحث، وخيار الفرز المختار
@@ -1062,7 +1076,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                         <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 relative z-10" />
-                        <span className="relative z-10">رجوع للمكتبة</span>
+                        <span className="relative z-10">رجوع</span>
                       </button>
                       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                         <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-md shrink-0">
@@ -1425,12 +1439,40 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                 /* ══ MAIN LIBRARY VIEW ═════════════════ */
                 /* ═══════════════════════════════════════ */
                 <>
-                  {/* ── Folder Cards Grid ── */}
+                  {/* ── Folder Cards Section ── */}
                   {visibleFolders.length > 0 && (
-                    <div className={cn("mb-8 transition-all duration-300", viewMode === "list" && "mb-4 sm:mb-5")}>
-                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2.5 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
+                    <div className={cn("mb-10 transition-all duration-300", viewMode === "list" && "mb-5 sm:mb-6")}>
+                      {/* Section Header: Title + Badge + View All Button */}
+                      <div className="flex items-center justify-between mb-4 px-1" dir="rtl">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/15 shadow-sm">
+                            <FolderOpen className="w-4 h-4 text-primary" />
+                          </div>
+                          <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground">المجلدات</h3>
+                          <span className="text-[10px] sm:text-xs text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full font-semibold border border-primary/15">
+                            {visibleFolders.length}
+                          </span>
+                        </div>
+                        {visibleFolders.length > 3 && (
+                          <button
+                            onClick={() => setShowAllFolders((prev) => !prev)}
+                            className="relative group overflow-hidden flex items-center justify-center gap-1.5 px-3 sm:px-4 h-8 sm:h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary text-[11px] sm:text-xs font-bold cursor-pointer shrink-0"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                            <span className="relative z-10">{showAllFolders ? "عرض أقل" : "عرض الكل"}</span>
+                            <ChevronDown className={cn("w-3.5 h-3.5 text-primary/60 group-hover:text-primary transition-transform duration-300 relative z-10", showAllFolders && "rotate-180")} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className={cn(
+                        "grid gap-2.5 sm:gap-4 max-w-5xl mx-auto transition-all duration-500",
+                        displayedFolders.length <= 3
+                          ? "grid-cols-1 sm:grid-cols-3 md:grid-cols-3"
+                          : "grid-cols-2 md:grid-cols-2"
+                      )} dir="rtl">
                         <AnimatePresence mode="popLayout">
-                          {visibleFolders.map((folder, idx) => {
+                          {displayedFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
                             const folderItemCount = isAlbumsOnly
                               ? liveAlbums.filter(a => String(a.folder_id) === String(folder.id)).length
@@ -1490,6 +1532,31 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     </div>
                   )}
 
+                  {/* ── Album Section Header ── */}
+                  {filteredAndSortedAlbums.length > 0 && (
+                    <div className="flex items-center justify-between mb-4 px-1" dir="rtl">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/15 shadow-sm">
+                          <Music className="w-4 h-4 text-primary" />
+                        </div>
+                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground">الألبومات</h3>
+                        <span className="text-[10px] sm:text-xs text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full font-semibold border border-primary/15">
+                          {filteredAndSortedAlbums.length}
+                        </span>
+                      </div>
+                      {filteredAndSortedAlbums.length > 3 && (
+                        <button
+                          onClick={handleShowAll}
+                          className="relative group overflow-hidden flex items-center justify-center gap-1.5 px-3 sm:px-4 h-8 sm:h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary text-[11px] sm:text-xs font-bold cursor-pointer shrink-0"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                          <span className="relative z-10">{visibleCount >= filteredAndSortedAlbums.length ? "عرض أقل" : "عرض الكل"}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 text-primary/60 group-hover:text-primary transition-transform duration-300 relative z-10", visibleCount >= filteredAndSortedAlbums.length && "rotate-180")} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* ── Album Tabs Content ── */}
                   <TabsContent value="sorrow" className="mt-0 focus-visible:outline-none">
                     <AlbumGrid
@@ -1525,25 +1592,25 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     />
                   </TabsContent>
 
-                  {/* Show All Button */}
+                  {/* Bottom Show All / Show Less Button */}
                   <AnimatePresence>
-                    {filteredAndSortedAlbums.length > visibleCount && (
+                    {filteredAndSortedAlbums.length > 3 && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.3 }}
-                        className="flex justify-center mt-12"
+                        className="flex justify-center mt-10"
                       >
                         <motion.button
                           onClick={handleShowAll}
                           whileHover={{ scale: 1.03, translateY: -2 }}
                           whileTap={{ scale: 0.98 }}
-                          className="relative group overflow-hidden flex items-center justify-center gap-3 px-8 h-12 min-w-[180px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)] text-primary text-xs font-bold"
+                          className="relative group overflow-hidden flex items-center justify-center gap-2.5 px-7 h-11 min-w-[160px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.3)] text-primary text-xs font-bold cursor-pointer"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                          <span className="relative z-10">عرض الكل</span>
-                          <ChevronDown className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors duration-300 relative z-10 group-hover:translate-y-0.5 transition-transform duration-300" />
+                          <span className="relative z-10">{visibleCount >= filteredAndSortedAlbums.length ? "عرض أقل" : "عرض الكل"}</span>
+                          <ChevronDown className={cn("w-4 h-4 text-primary/60 group-hover:text-primary transition-transform duration-300 relative z-10", visibleCount >= filteredAndSortedAlbums.length && "rotate-180")} />
                         </motion.button>
                       </motion.div>
                     )}
@@ -1665,7 +1732,9 @@ function AlbumGrid({
         className={cn(
           "grid transition-all duration-500",
           viewMode === "grid"
-            ? "grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-1.5 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+            ? albums.length <= 3
+              ? "grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-2.5 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+              : "grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-1.5 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
             : "grid-cols-1 gap-3 sm:gap-6 max-w-5xl mx-auto"
         )}
       >
