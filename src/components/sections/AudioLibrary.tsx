@@ -10,6 +10,7 @@ import {
   Search,
   Music,
   FolderOpen,
+  FolderHeart,
   Headphones,
   Share2,
   Clock,
@@ -23,7 +24,8 @@ import {
   Shuffle,
   LayoutGrid,
   List,
-  X
+  X,
+  ArrowRight
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +51,10 @@ interface Track {
   duration: string;
   audio_url: string;
   album_id: string | number;
+  folder_id?: string | number | null;
   order?: number;
+  description?: string | null;
+  release_year?: number | string | null;
   listens_count?: number;
   downloads_count?: number;
   is_visible?: boolean;
@@ -63,8 +68,22 @@ interface Album {
   title: string;
   year: string | number;
   category: string;
+  folder_id?: string | number | null;
   tracks: Track[];
   is_visible?: boolean;
+}
+
+/**
+ * واجهة تمثل بيانات المجلد المخصص
+ */
+interface AudioFolder {
+  id: number;
+  name: string;
+  category: string;
+  folder_type: "qasaed_only" | "albums_only";
+  display_order: number;
+  is_visible: boolean;
+  created_at?: string | null;
 }
 
 interface AudioLibraryProps {
@@ -211,17 +230,26 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [activeCategory, setActiveCategory] = useState("sorrow");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [liveAlbums, setLiveAlbums] = useState<Album[]>([]);
+  const [liveFolders, setLiveFolders] = useState<AudioFolder[]>([]);
+  const [standaloneQasaed, setStandaloneQasaed] = useState<Track[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [expandedAlbumId, setExpandedAlbumId] = useState<string | number | null>(null);
   const [sharedAlbumId, setSharedAlbumId] = useState<string | number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [currentFolderView, setCurrentFolderView] = useState<AudioFolder | null>(null);
 
-  // Reset visibleCount when activeCategory or searchQuery changes
+  // Reset visibleCount and currentFolderView when activeCategory changes
   useEffect(() => {
     setVisibleCount(5);
-  }, [activeCategory, searchQuery]);
+    setCurrentFolderView(null);
+  }, [activeCategory]);
+
+  // Reset visibleCount when searchQuery changes
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [searchQuery]);
 
   // معالجة مشاركة المقاطع الصوتية عند فتح رابط يحتوي على معرف المقطع
   useEffect(() => {
@@ -293,7 +321,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     }
   }, [loading, liveAlbums, onPlay]);
 
-  // الاستماع لحدث "الانتقال إلى الألبوم" لتحديد القسم وفتح قائمة القصائد والتمرير إليها
+  // الاستماع لحدث "الانتقال إلى الألبوم / المقطع" لتحديد القسم والمجلد وفتح قائمة القصائد والتمرير إليها
   useEffect(() => {
     const handleGoToAlbum = (e: Event) => {
       const customEvt = e as CustomEvent;
@@ -301,18 +329,47 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       const track = detail?.track;
       const albumTitle = detail?.albumTitle || track?.album;
       const albumId = detail?.albumId || track?.album_id;
+      const folderId = detail?.folderId || track?.folder_id;
 
-      if (!albumTitle && !albumId) return;
+      if (!track && !albumTitle && !albumId && folderId == null) return;
 
+      // 1. تحديد ما إذا كان العنصر ينتمي لمجلد وتفعيله، أو العودة للمكتبة الرئيسية
+      let targetFolder: AudioFolder | null = null;
+      if (folderId != null && folderId !== 0) {
+        targetFolder = liveFolders.find(f => String(f.id) === String(folderId)) || null;
+      }
+      if (!targetFolder && albumId) {
+        const foundAlb = liveAlbums.find(a => String(a.id) === String(albumId));
+        if (foundAlb && foundAlb.folder_id) {
+          targetFolder = liveFolders.find(f => String(f.id) === String(foundAlb.folder_id)) || null;
+        }
+      }
+      if (!targetFolder && track?.id) {
+        const foundTrack = standaloneQasaed.find(t => String(t.id) === String(track.id));
+        if (foundTrack && foundTrack.folder_id) {
+          targetFolder = liveFolders.find(f => String(f.id) === String(foundTrack.folder_id)) || null;
+        }
+      }
+
+      if (targetFolder) {
+        if (targetFolder.category) {
+          setActiveCategory(targetFolder.category);
+        }
+        setCurrentFolderView(targetFolder);
+      } else {
+        // إذا كان العنصر مستقلاً بالمكتبة الرئيسية، أغلق المجلد الحالي
+        setCurrentFolderView(null);
+      }
+
+      // 2. تفعيل الألبوم إذا كان المسار تابعاً لألبوم
       const albumsList = liveAlbums.length > 0 ? liveAlbums : FALLBACK_ALBUMS;
-
       let foundAlbum = albumsList.find(
         (a) =>
           (albumId && String(a.id) === String(albumId)) ||
           (albumTitle && normalizeArabic(a.title) === normalizeArabic(String(albumTitle)))
       );
 
-      if (!foundAlbum && albumTitle) {
+      if (!foundAlbum && albumTitle && albumTitle !== "قصيدة مستقلة") {
         foundAlbum = albumsList.find(
           (a) =>
             normalizeArabic(a.title).includes(normalizeArabic(String(albumTitle))) ||
@@ -321,31 +378,43 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       }
 
       if (foundAlbum) {
-        if (foundAlbum.category) {
+        if (foundAlbum.category && !targetFolder) {
           setActiveCategory(foundAlbum.category);
         }
         setSharedAlbumId(foundAlbum.id);
         setExpandedAlbumId(foundAlbum.id);
-
-        setTimeout(() => {
-          const el = document.getElementById(`album-${foundAlbum.id}`);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else {
-            const audioSection = document.getElementById("audio");
-            if (audioSection) {
-              audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }
-        }, 300);
       }
+
+      // 3. تمرير سلس وتأثير تمييز بصري
+      setTimeout(() => {
+        let targetElement: HTMLElement | null = null;
+        if (track?.id) {
+          targetElement = document.getElementById(`track-${track.id}`);
+        }
+        if (!targetElement && foundAlbum) {
+          targetElement = document.getElementById(`album-${foundAlbum.id}`);
+        }
+
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          targetElement.classList.add("ring-2", "ring-primary", "ring-offset-2", "transition-all", "duration-500");
+          setTimeout(() => {
+            targetElement?.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+          }, 2500);
+        } else {
+          const audioSection = document.getElementById("audio");
+          if (audioSection) {
+            audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+      }, 350);
     };
 
     window.addEventListener("go-to-album", handleGoToAlbum);
     return () => {
       window.removeEventListener("go-to-album", handleGoToAlbum);
     };
-  }, [liveAlbums]);
+  }, [liveAlbums, liveFolders, standaloneQasaed]);
 
   const handleShowAll = () => {
     setVisibleCount(filteredAndSortedAlbums.length);
@@ -359,6 +428,22 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       try {
         setLoading(true);
         setErrorMessage(null);
+
+        // جلب المجلدات
+        let foldersResult: AudioFolder[] = [];
+        try {
+          const { data: foldersData, error: foldersError } = await supabase
+            .from("audio_folders")
+            .select("*")
+            .order("display_order", { ascending: true });
+          if (foldersError) {
+            console.warn("[AudioLibrary] Folders fetch error:", foldersError);
+          } else if (foldersData) {
+            foldersResult = foldersData.filter((f: any) => f.is_visible !== false) as AudioFolder[];
+          }
+        } catch (e) { console.warn("[AudioLibrary] Folders fetch exception:", e); }
+        setLiveFolders(foldersResult);
+        console.log("[AudioLibrary] liveFolders fetched:", foldersResult);
 
         const { data: albumsData, error: albumsError } = await supabase
           .from("albums")
@@ -398,11 +483,26 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
             return {
               ...album,
+              // Explicitly preserve folder_id as a number or null (never undefined)
+              folder_id: album.folder_id != null ? Number(album.folder_id) : null,
               tracks: tracksWithStats
             };
           });
 
+          console.log("[AudioLibrary] Albums with folder_id:", fullAlbumsStructure.map((a: any) => ({ id: a.id, title: a.title, folder_id: a.folder_id })));
           setLiveAlbums(fullAlbumsStructure as Album[]);
+
+          // جلب القصائد المستقلة (المرتبطة بمجلد فقط وبدون ألبوم)
+          const standaloneTracksData = visibleTracksData.filter(
+            (t: any) => t.folder_id != null && t.folder_id !== 0 && !t.album_id
+          ).map((t: any) => ({
+            ...t,
+            folder_id: Number(t.folder_id),
+            listens_count: t.listens_count ?? t.play_count ?? 0,
+            downloads_count: t.downloads_count ?? t.download_count ?? 0,
+          }));
+          console.log("[AudioLibrary] standaloneQasaed fetched:", standaloneTracksData);
+          setStandaloneQasaed(standaloneTracksData as Track[]);
         } else {
           console.info("[AudioLibrary] Database returned no albums. Using fallback albums.");
           setLiveAlbums(FALLBACK_ALBUMS);
@@ -498,6 +598,12 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   const handleShufflePlay = () => {
+    // إذا كان المكون داخل مجلد حالياً، نفّذ التشغيل العشوائي لمحتويات ذلك المجلد فقط
+    if (currentFolderView) {
+      handleFolderShufflePlay();
+      return;
+    }
+
     // جلب كافة الألبومات التي تنتمي للقسم النشط الحالي
     const categoryAlbums = liveAlbums.filter(album => album.category === activeCategory);
 
@@ -511,6 +617,20 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
             audioUrl: track.audio_url,
             album: album.title
           });
+        });
+      }
+    });
+
+    // إضافة القصائد المستقلة ضمن نفس القسم
+    const categoryFolderIds = liveFolders
+      .filter(f => f.category === activeCategory && f.folder_type === "qasaed_only")
+      .map(f => f.id);
+    standaloneQasaed.forEach(track => {
+      if (!track.folder_id || categoryFolderIds.includes(Number(track.folder_id))) {
+        allTracks.push({
+          ...track,
+          audioUrl: track.audio_url,
+          album: "قصيدة مستقلة"
         });
       }
     });
@@ -540,10 +660,93 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   /**
+   * تشغيل عشوائي لمحتويات المجلد المفتوح حالياً فقط
+   */
+  const handleFolderShufflePlay = () => {
+    if (!currentFolderView) return;
+
+    const allTracks: any[] = [];
+
+    if (currentFolderView.folder_type === "albums_only") {
+      // جلب كل القصائد من الألبومات التابعة لهذا المجلد
+      const folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
+      folderAlbums.forEach(album => {
+        if (album.tracks) {
+          album.tracks.forEach(track => {
+            allTracks.push({
+              ...track,
+              audioUrl: track.audio_url,
+              album: album.title
+            });
+          });
+        }
+      });
+    } else {
+      // جلب القصائد المستقلة التابعة لهذا المجلد
+      const folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
+      folderTracks.forEach(track => {
+        allTracks.push({
+          ...track,
+          audioUrl: track.audio_url,
+          album: currentFolderView.name
+        });
+      });
+    }
+
+    if (allTracks.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد قصائد في هذا المجلد للتشغيل العشوائي",
+      });
+      return;
+    }
+
+    const shuffledTracks = [...allTracks];
+    for (let i = shuffledTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+    }
+
+    const firstTrack = shuffledTracks[0];
+    incrementTrackStat(firstTrack.id, "listens");
+    onPlay(firstTrack, shuffledTracks);
+  };
+
+  const visibleFolders = useMemo(() => {
+    let result = liveFolders.filter(f => f.category === activeCategory);
+    if (searchQuery) {
+      const normalizedQuery = normalizeArabic(searchQuery);
+      result = result.filter(folder => {
+        if (normalizeArabic(folder.name).includes(normalizedQuery)) return true;
+        const hasMatchingAlbum = liveAlbums.some(a =>
+          String(a.folder_id) === String(folder.id) &&
+          (normalizeArabic(a.title).includes(normalizedQuery) ||
+            a.tracks.some(t => normalizeArabic(t.title).includes(normalizedQuery)))
+        );
+        if (hasMatchingAlbum) return true;
+        const hasMatchingTrack = standaloneQasaed.some(t =>
+          String(t.folder_id) === String(folder.id) &&
+          (normalizeArabic(t.title).includes(normalizedQuery) ||
+            (t.description && normalizeArabic(t.description).includes(normalizedQuery)))
+        );
+        return hasMatchingTrack;
+      });
+    }
+    return result;
+  }, [liveFolders, activeCategory, searchQuery, liveAlbums, standaloneQasaed]);
+
+  /**
    * تصفية وفرز الألبومات بناءً على الفئة، البحث، وخيار الفرز المختار
    */
   const filteredAndSortedAlbums = useMemo(() => {
-    let result = liveAlbums.filter(album => album.category === activeCategory);
+    // Filter by category AND exclude albums that belong to a folder (they render inside folder view only)
+    // folder_id check: null, undefined, 0 are all "no folder" → show in main view
+    let result = liveAlbums.filter(album => {
+      const hasFolder = album.folder_id != null && album.folder_id !== 0;
+      return album.category === activeCategory && !hasFolder;
+    });
+
+    console.log("[AudioLibrary] filteredAndSortedAlbums (main view, no folder):", result.map(a => ({ id: a.id, title: a.title, folder_id: a.folder_id })));
 
     if (searchQuery) {
       const normalizedQuery = normalizeArabic(searchQuery);
@@ -609,8 +812,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const handleAction = async (action: string, track: any) => {
     // جلب اسم الألبوم لاستخدامه في التحميل والمشاركة
     const album = liveAlbums.find(a => String(a.id) === String(track.album_id));
-    const albumName = album ? album.title : "ألبوم";
-    const fullName = `${albumName} - ${track.title}`;
+    const albumName = album ? album.title : "موشح";
+    const fullName = `${albumName} ${track.title}`;
 
     // 1. كود المشاركة المطور
     if (action === "share") {
@@ -839,8 +1042,454 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <p className="text-sm font-bold mb-2">فشل جلب البيانات:</p>
                   <code className="text-xs block bg-black/40 p-3 rounded dir-ltr text-left overflow-auto text-red-300">{errorMessage}</code>
                 </div>
+              ) : currentFolderView ? (
+                /* ═══════════════════════════════════════ */
+                /* ══ IN-PAGE FOLDER VIEW ═══════════════ */
+                /* ═══════════════════════════════════════ */
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="space-y-6"
+                >
+                  {/* Folder Header: Back button + folder name + in-folder shuffle */}
+                  <div className="flex items-center justify-between gap-3 flex-wrap" dir="rtl">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setCurrentFolderView(null)}
+                        className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.3)] text-primary text-xs font-bold cursor-pointer"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                        <ArrowRight className="w-3.5 h-3.5 relative z-10" />
+                        <span className="relative z-10">رجوع إلى المكتبة الرئيسية</span>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-md">
+                          {currentFolderView.folder_type === "albums_only" ? (
+                            <FolderHeart className="w-4 h-4" />
+                          ) : (
+                            <Music className="w-4 h-4" />
+                          )}
+                        </div>
+                        <h3 className="text-sm md:text-base font-bold text-foreground">{currentFolderView.name}</h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Folder content rendering */}
+                  {currentFolderView.folder_type === "albums_only" ? (
+                    /* ── Albums-Only Folder: Render album cards ── */
+                    (() => {
+                      let folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
+
+                      // Filter by search query
+                      if (searchQuery) {
+                        const normalizedQuery = normalizeArabic(searchQuery);
+                        folderAlbums = folderAlbums
+                          .map(album => {
+                            const albumMatches =
+                              normalizeArabic(album.title).includes(normalizedQuery) ||
+                              (album.year && normalizeArabic(String(album.year)).includes(normalizedQuery));
+
+                            return {
+                              ...album,
+                              tracks: album.tracks.filter(track =>
+                                albumMatches || normalizeArabic(track.title).includes(normalizedQuery)
+                              ),
+                            };
+                          })
+                          .filter(
+                            album =>
+                              album.tracks.length > 0 ||
+                              normalizeArabic(album.title).includes(normalizedQuery) ||
+                              (album.year && normalizeArabic(String(album.year)).includes(normalizedQuery))
+                          );
+                      }
+
+                      // Sort folder albums
+                      folderAlbums = [...folderAlbums].sort((a, b) => {
+                        switch (sortBy) {
+                          case "newest":
+                            return Number(b.year) - Number(a.year);
+                          case "oldest":
+                            return Number(a.year) - Number(b.year);
+                          case "az":
+                            return a.title.localeCompare(b.title, 'ar');
+                          case "za":
+                            return b.title.localeCompare(a.title, 'ar');
+                          case "popular": {
+                            const sumListens = (album: Album) => album.tracks.reduce((sum, t) => sum + (t.listens_count || 0), 0);
+                            return sumListens(b) - sumListens(a);
+                          }
+                          default:
+                            return 0;
+                        }
+                      });
+
+                      if (folderAlbums.length === 0) {
+                        return (
+                          <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
+                            <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                            <p className="text-sm tracking-widest">
+                              {searchQuery ? "لا توجد نتائج مطابقة في هذا المجلد" : "لا توجد ألبومات في هذا المجلد"}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <AlbumGrid
+                          albums={folderAlbums}
+                          onPlay={onPlay}
+                          onAction={handleAction}
+                          onIncrementStat={incrementTrackStat}
+                          expandedAlbumId={expandedAlbumId}
+                          setExpandedAlbumId={setExpandedAlbumId}
+                          viewMode={viewMode}
+                        />
+                      );
+                    })()
+                  ) : (
+                    /* ── Qasaed-Only Folder: Render golden track cards conditionally by viewMode ── */
+                    (() => {
+                      let folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
+
+                      // Filter by search query
+                      if (searchQuery) {
+                        const normalizedQuery = normalizeArabic(searchQuery);
+                        folderTracks = folderTracks.filter(track =>
+                          normalizeArabic(track.title).includes(normalizedQuery) ||
+                          (track.description && normalizeArabic(track.description).includes(normalizedQuery)) ||
+                          (track.release_year && normalizeArabic(String(track.release_year)).includes(normalizedQuery))
+                        );
+                      }
+
+                      // Sort folder tracks
+                      folderTracks = [...folderTracks].sort((a, b) => {
+                        switch (sortBy) {
+                          case "newest": {
+                            const valA = Number(a.release_year || a.order || a.id);
+                            const valB = Number(b.release_year || b.order || b.id);
+                            return valB - valA;
+                          }
+                          case "oldest": {
+                            const valA = Number(a.release_year || a.order || a.id);
+                            const valB = Number(b.release_year || b.order || b.id);
+                            return valA - valB;
+                          }
+                          case "az":
+                            return a.title.localeCompare(b.title, 'ar');
+                          case "za":
+                            return b.title.localeCompare(a.title, 'ar');
+                          case "popular":
+                            return (b.listens_count || 0) - (a.listens_count || 0);
+                          default:
+                            return 0;
+                        }
+                      });
+
+                      if (folderTracks.length === 0) {
+                        return (
+                          <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
+                            <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                            <p className="text-sm tracking-widest">
+                              {searchQuery ? "لا توجد نتائج مطابقة في هذا المجلد" : "لا توجد قصائد في هذا المجلد"}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div
+                          dir="rtl"
+                          className={cn(
+                            "transition-all duration-500",
+                            viewMode === "grid"
+                              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+                              : "space-y-3 max-w-5xl mx-auto"
+                          )}
+                        >
+                          {folderTracks.map((track, trackIdx) => {
+                            if (viewMode === "grid") {
+                              return (
+                                <motion.div
+                                  id={`track-${track.id}`}
+                                  key={track.id}
+                                  initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  transition={{
+                                    duration: 0.3,
+                                    ease: [0.16, 1, 0.3, 1],
+                                    delay: trackIdx < 6 ? trackIdx * 0.04 : (trackIdx % 6) * 0.04,
+                                  }}
+                                  className="flex"
+                                >
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2 sm:p-3.5 md:p-4 text-start items-start w-full relative" dir="rtl">
+                                    {/* Decorative background glow */}
+                                    <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
+
+                                    {/* Top Bar: Play button (Right / Start) + Release Year & Duration Badges Stacked (Left / End) */}
+                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                                      <button
+                                        onClick={() => {
+                                          incrementTrackStat(track.id, "listens");
+                                          const mappedTrack = {
+                                            ...track,
+                                            audioUrl: track.audio_url,
+                                            album: currentFolderView.name
+                                          };
+                                          const mappedPlaylist = folderTracks.map(t => ({
+                                            ...t,
+                                            audioUrl: t.audio_url,
+                                            album: currentFolderView.name
+                                          }));
+                                          onPlay(mappedTrack, mappedPlaylist);
+                                        }}
+                                        className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                                        title="تشغيل القصيدة"
+                                      >
+                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                                      </button>
+                                      <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap overflow-hidden">
+                                        {track.release_year && (
+                                          <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
+                                            {track.release_year}
+                                          </span>
+                                        )}
+                                        {track.duration && (
+                                          <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0 font-mono">
+                                            {track.duration}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Middle Section: Track Title & Description */}
+                                    <div className="my-auto relative z-10 text-start w-full" dir="rtl">
+                                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-2">
+                                        {track.title}
+                                      </h3>
+                                      {track.description && (
+                                        <p className="text-[9px] sm:text-[10px] text-foreground/50 line-clamp-2 mt-1 leading-tight font-normal">
+                                          {track.description}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {/* Bottom Section: Compact Inline Stats Container & Action Buttons (Download, Share) */}
+                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                                        <div className="flex items-center gap-0.5">
+                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                          <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
+                                        </div>
+                                        <div className="w-px h-2 bg-foreground/15 mx-0.5" />
+                                        <div className="flex items-center gap-0.5">
+                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                          <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("download", track)}
+                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="تنزيل"
+                                        >
+                                          <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("share", track)}
+                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="مشاركة"
+                                        >
+                                          <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                </motion.div>
+                              );
+                            }
+
+                            // LIST VIEW
+                            return (
+                              <motion.div
+                                id={`track-${track.id}`}
+                                key={track.id}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
+                              >
+                                <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.8rem] shadow-xl text-start" dir="rtl">
+                                  <CardContent className="p-0" dir="rtl">
+                                    {/* Compact Golden header */}
+                                    <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-3 flex-wrap md:flex-nowrap" dir="rtl">
+                                      <div className="flex items-center gap-2.5 sm:gap-3 text-start min-w-0 flex-1">
+                                        <button
+                                          onClick={() => {
+                                            incrementTrackStat(track.id, "listens");
+                                            const mappedTrack = {
+                                              ...track,
+                                              audioUrl: track.audio_url,
+                                              album: currentFolderView.name
+                                            };
+                                            const mappedPlaylist = folderTracks.map(t => ({
+                                              ...t,
+                                              audioUrl: t.audio_url,
+                                              album: currentFolderView.name
+                                            }));
+                                            onPlay(mappedTrack, mappedPlaylist);
+                                          }}
+                                          className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 shadow-lg cursor-pointer group/btn"
+                                          title="تشغيل القصيدة"
+                                        >
+                                          <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                                        </button>
+                                        <div className="text-start min-w-0 flex-1">
+                                          <div className="flex items-center gap-2 justify-start flex-wrap">
+                                            <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight truncate text-foreground">
+                                              {track.title}
+                                            </h3>
+                                            {track.release_year && (
+                                              <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">                                                {track.release_year}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {track.duration && (
+                                            <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 font-mono mt-0.5">
+                                              {track.duration}
+                                            </p>
+                                          )}
+                                          {track.description && (
+                                            <p className="text-[10px] sm:text-xs text-foreground/50 line-clamp-1 sm:line-clamp-2 mt-0.5 font-normal leading-relaxed">
+                                              {track.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Track stats and actions */}
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-3 py-1.5 rounded-2xl backdrop-blur-sm">
+                                          <div className="flex items-center gap-1">
+                                            <Headphones className="w-3 h-3 text-primary opacity-80" />
+                                            <span className="font-normal text-foreground/40 dark:text-gray-400">
+                                              {(track.listens_count || 0).toLocaleString("en-US")}
+                                            </span>
+                                          </div>
+                                          <div className="w-px h-3 bg-foreground/15" />
+                                          <div className="flex items-center gap-1">
+                                            <Download className="w-3 h-3 text-primary opacity-80" />
+                                            <span className="font-normal text-foreground/40 dark:text-gray-400">
+                                              {(track.downloads_count || 0).toLocaleString("en-US")}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("download", track)}
+                                          className="w-8 h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="تنزيل"
+                                        >
+                                          <Download className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("share", track)}
+                                          className="w-8 h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="مشاركة"
+                                        >
+                                          <Share2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()
+                  )}
+                </motion.div>
               ) : (
+                /* ═══════════════════════════════════════ */
+                /* ══ MAIN LIBRARY VIEW ═════════════════ */
+                /* ═══════════════════════════════════════ */
                 <>
+                  {/* ── Folder Cards Grid ── */}
+                  {visibleFolders.length > 0 && (
+                    <div className="mb-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto" dir="rtl">
+                        <AnimatePresence mode="popLayout">
+                          {visibleFolders.map((folder, idx) => {
+                            const isAlbumsOnly = folder.folder_type === "albums_only";
+                            const folderItemCount = isAlbumsOnly
+                              ? liveAlbums.filter(a => String(a.folder_id) === String(folder.id)).length
+                              : standaloneQasaed.filter(t => String(t.folder_id) === String(folder.id)).length;
+
+                            return (
+                              <motion.div
+                                key={folder.id}
+                                initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -16, scale: 0.97 }}
+                                transition={{
+                                  duration: 0.35,
+                                  ease: [0.16, 1, 0.3, 1],
+                                  delay: idx * 0.05,
+                                }}
+                              >
+                                <button
+                                  onClick={() => setCurrentFolderView(folder)}
+                                  className="w-full text-start group"
+                                >
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                                    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4" dir="rtl">
+                                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                        {/* Glowing gold icon */}
+                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
+                                          {isAlbumsOnly ? (
+                                            <FolderHeart className="w-5 h-5" />
+                                          ) : (
+                                            <Music className="w-5 h-5" />
+                                          )}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
+                                            {folder.name}
+                                          </h3>
+                                          <p className="text-[9px] sm:text-[10px] text-foreground/40 mt-0.5">
+                                            {isAlbumsOnly
+                                              ? `${folderItemCount} ألبوم`
+                                              : `${folderItemCount} قصيدة`
+                                            }
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {/* Arrow indicator */}
+                                      <div className="w-8 h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
+                                        <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </button>
+                              </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Album Tabs Content ── */}
                   <TabsContent value="sorrow" className="mt-0 focus-visible:outline-none">
                     <AlbumGrid
                       albums={visibleAlbums}
@@ -1015,7 +1664,7 @@ function AlbumGrid({
         className={cn(
           "grid transition-all duration-500",
           viewMode === "grid"
-            ? "grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+            ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
             : "grid-cols-1 gap-6 max-w-5xl mx-auto"
         )}
       >
