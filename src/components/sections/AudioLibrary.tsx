@@ -1223,12 +1223,12 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   }}
                                   className="flex"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-1.5 sm:p-3.5 md:p-4 text-start items-start w-full relative" dir="rtl">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-3.5 md:p-4 text-start items-start w-full relative" dir="rtl">
                                     {/* Decorative background glow */}
-                                    <div className="absolute top-0 start-0 w-16 sm:w-32 h-16 sm:h-32 bg-primary/5 rounded-full blur-lg sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
+                                    <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
                                     {/* Top Bar: Play button (Right / Start) + Release Year & Duration Badges Stacked (Left / End) */}
-                                    <div className="flex items-center justify-between gap-0.5 relative z-10 w-full" dir="rtl">
+                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                                       <button
                                         onClick={() => {
                                           incrementTrackStat(track.id, "listens");
@@ -1244,19 +1244,19 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                           }));
                                           onPlay(mappedTrack, mappedPlaylist);
                                         }}
-                                        className="w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-md sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                                        className="w-7.5 h-7.5 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
                                         title="تشغيل القصيدة"
                                       >
-                                        <Play className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                                       </button>
-                                      <div className="flex flex-col items-end gap-0.5 shrink-0 whitespace-nowrap overflow-hidden">
+                                      <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap overflow-hidden">
                                         {track.release_year && (
-                                          <span className="inline-flex items-center text-[7px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1 py-[1px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
                                             {track.release_year}
                                           </span>
                                         )}
                                         {track.duration && (
-                                          <span className="inline-flex items-center text-[7px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1 py-[1px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0 font-mono">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0 font-mono">
                                             {track.duration}
                                           </span>
                                         )}
@@ -1265,7 +1265,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                                     {/* Middle Section: Track Title & Description */}
                                     <div className="my-auto relative z-10 text-start w-full min-w-0" dir="rtl">
-                                      <h3 className="text-[9px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-tight line-clamp-2">
+                                      <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-2">
                                         {track.title}
                                       </h3>
                                       {track.description && (
@@ -1276,37 +1276,37 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                     </div>
 
                                     {/* Bottom Section: Compact Inline Stats Container & Action Buttons (Download, Share) */}
-                                    <div className="flex items-center justify-between gap-0.5 relative z-10 w-full" dir="rtl">
-                                      <div className="inline-flex items-center justify-start gap-0.5 sm:gap-2 text-[7px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1 sm:px-2 py-0.5 rounded sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
-                                        <div className="flex items-center gap-0.5">
-                                          <Headphones className="w-2 h-2 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                                           <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
                                         </div>
-                                        <div className="w-px h-1.5 sm:h-2 bg-foreground/15 mx-0.5" />
-                                        <div className="flex items-center gap-0.5">
-                                          <Download className="w-2 h-2 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                        <div className="w-px h-2 sm:h-2.5 bg-foreground/15 mx-0.5" />
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                                           <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
                                         </div>
                                       </div>
 
-                                      <div className="flex items-center gap-0.5 shrink-0">
+                                      <div className="flex items-center gap-1 shrink-0">
                                         <Button
                                           variant="ghost"
                                           size="icon"
                                           onClick={() => handleAction("download", track)}
-                                          className="w-5 h-5 sm:w-7 sm:h-7 rounded hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
                                           title="تنزيل"
                                         >
-                                          <Download className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
+                                          <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         </Button>
                                         <Button
                                           variant="ghost"
                                           size="icon"
                                           onClick={() => handleAction("share", track)}
-                                          className="w-5 h-5 sm:w-7 sm:h-7 rounded hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
                                           title="مشاركة"
                                         >
-                                          <Share2 className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
+                                          <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         </Button>
                                       </div>
                                     </div>
@@ -1428,7 +1428,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {/* ── Folder Cards Grid ── */}
                   {visibleFolders.length > 0 && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2.5 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
                         <AnimatePresence mode="popLayout">
                           {visibleFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
@@ -1452,22 +1452,22 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   onClick={() => setCurrentFolderView(folder)}
                                   className="w-full text-start group"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-xl sm:rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-                                    <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-1.5 sm:gap-4" dir="rtl">
-                                      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                                    <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2 sm:gap-4" dir="rtl">
+                                      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0 flex-1 overflow-hidden">
                                         {/* Glowing gold icon */}
-                                        <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
+                                        <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
                                           {isAlbumsOnly ? (
-                                            <FolderHeart className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <FolderHeart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                                           ) : (
-                                            <Music className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <Music className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                                           )}
                                         </div>
                                         <div className="min-w-0 flex-1 overflow-hidden">
-                                          <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
+                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
                                             {folder.name}
                                           </h3>
-                                          <p className="text-[8px] sm:text-[10px] text-foreground/40 mt-0.5 whitespace-nowrap truncate">
+                                          <p className="text-[9px] sm:text-[10px] text-foreground/40 mt-0.5 whitespace-nowrap truncate">
                                             {isAlbumsOnly
                                               ? `${folderItemCount} ألبوم`
                                               : `${folderItemCount} قصيدة`
@@ -1476,8 +1476,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
                                       {/* Arrow indicator */}
-                                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
-                                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 -rotate-90" />
+                                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
+                                        <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
                                       </div>
                                     </CardContent>
                                   </Card>
@@ -1694,26 +1694,26 @@ function AlbumGrid({
                   }}
                   className="flex"
                 >
-                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-1.5 sm:p-4 md:p-5 text-start items-start w-full relative" dir="rtl">
+                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative" dir="rtl">
                     {/* Decorative background glow */}
-                    <div className="absolute top-0 start-0 w-16 sm:w-32 h-16 sm:h-32 bg-primary/5 rounded-full blur-lg sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
+                    <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
                     {/* Top Bar: Quick Play Button (Right / Start) + Status Label & Year Badges (Left / End - Strictly Single Line) */}
-                    <div className="flex items-center justify-between gap-0.5 relative z-10 w-full" dir="rtl">
+                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
-                        className="w-6 h-6 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-md sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                        className="w-7.5 h-7.5 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
                         title="تشغيل الألبوم كاملاً"
                       >
-                        <Play className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
-                      <div className="flex flex-row flex-nowrap items-center gap-0.5 justify-end shrink-0 whitespace-nowrap overflow-hidden">
+                      <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
                         {album.status_label && (
-                          <span className="inline-flex items-center text-[7px] sm:text-[9px] bg-primary/20 text-primary px-1 py-[1px] rounded-full font-bold border border-primary/15 shadow-sm whitespace-nowrap shrink-0">
+                          <span className="inline-flex items-center text-[8px] sm:text-[9px] bg-primary/20 text-primary px-1.5 py-[2px] rounded-full font-bold border border-primary/15 shadow-sm whitespace-nowrap shrink-0">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="inline-flex items-center text-[7px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1 py-[1px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
+                        <span className="inline-flex items-center text-[8px] sm:text-[9px] text-foreground/70 font-bold bg-foreground/5 px-1.5 py-[2px] rounded-full border border-foreground/10 shadow-sm whitespace-nowrap shrink-0">
                           {album.year}
                         </span>
                       </div>
@@ -1721,22 +1721,22 @@ function AlbumGrid({
 
                     {/* Middle Section: Album Title Only */}
                     <div className="my-auto relative z-10 text-start w-full min-w-0" dir="rtl">
-                      <h3 className="text-[9px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-tight sm:leading-snug line-clamp-2 sm:line-clamp-3">
+                      <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-2 sm:line-clamp-3">
                         {album.title}
                       </h3>
                     </div>
 
                     {/* Bottom Section: Compact Inline Stats Container (Right) & Sleek Expand Icon Button (Left) */}
-                    <div className="flex items-center justify-between gap-0.5 relative z-10 w-full" dir="rtl">
+                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                       {/* Compact inline statistics container */}
-                      <div className="inline-flex items-center justify-start gap-0.5 sm:gap-2 text-[7px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1 sm:px-2 py-0.5 rounded sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
-                        <div className="flex items-center gap-0.5">
-                          <Headphones className="w-2 h-2 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                        <div className="flex items-center gap-0.5 sm:gap-1">
+                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                           <span className="font-medium">{totalListens.toLocaleString("en-US")}</span>
                         </div>
-                        <div className="w-px h-1.5 sm:h-2 bg-foreground/15 mx-0.5" />
-                        <div className="flex items-center gap-0.5">
-                          <Download className="w-2 h-2 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                        <div className="w-px h-2 sm:h-2.5 bg-foreground/15 mx-0.5" />
+                        <div className="flex items-center gap-0.5 sm:gap-1">
+                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                           <span className="font-medium">{totalDownloads.toLocaleString("en-US")}</span>
                         </div>
                       </div>
@@ -1744,10 +1744,10 @@ function AlbumGrid({
                       {/* Minimalist expand icon button */}
                       <button
                         onClick={() => setExpandedAlbumId(album.id)}
-                        className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                        className="w-6.5 h-6.5 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
                         title="تصفح القصائد"
                       >
-                        <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-y-0.5 transition-transform" />
+                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-y-0.5 transition-transform" />
                       </button>
                     </div>
                   </Card>
