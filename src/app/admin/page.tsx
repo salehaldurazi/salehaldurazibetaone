@@ -20,7 +20,7 @@ import {
   Plus, Edit2, Trash2, ExternalLink, Loader2, Search,
   CheckCircle2, RefreshCw, Eye, AlertTriangle, Link2,
   Youtube, Video, X, ChevronDown, ChevronRight, EyeOff,
-  Bell, Sparkles,
+  Bell, Sparkles, ArrowRight, Folder, FolderOpen,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -52,11 +52,22 @@ function isValidYouTubeUrl(url: string): boolean {
 // ─────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────
+interface AudioFolder {
+  id: number;
+  name: string;
+  category: string;
+  folder_type: "qasaed_only" | "albums_only";
+  display_order: number;
+  is_visible: boolean;
+  created_at?: string | null;
+}
+
 interface Album {
   id: number;
   title: string;
   year?: string | number | null;
   category?: string | null;
+  folder_id?: number | null;
   is_visible?: boolean;
   created_at?: string | null;
 }
@@ -66,8 +77,11 @@ interface AudioTrack {
   title: string;
   audio_url?: string | null;
   album_id?: number | null;
+  folder_id?: number | null;
   duration?: string | null;
   order?: number | null;
+  description?: string | null;
+  release_year?: number | null;
   is_visible?: boolean;
   created_at?: string | null;
 }
@@ -184,6 +198,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [albums, setAlbums] = useState<Album[]>([]);
   const [audios, setAudios] = useState<AudioTrack[]>([]);
+  const [folders, setFolders] = useState<AudioFolder[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [siteUpdates, setSiteUpdates] = useState<SiteUpdate[]>(FALLBACK_SITE_UPDATES);
@@ -194,6 +209,15 @@ export default function AdminDashboard() {
 
   // ── Accordion ────────────────────────────────
   const [expandedAlbums, setExpandedAlbums] = useState<Set<number>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+
+  // ── Folder modal ──────────────────────────────
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<AudioFolder | null>(null);
+  const [folderName, setFolderName] = useState("");
+  const [folderCategory, setFolderCategory] = useState("sorrow");
+  const [folderType, setFolderType] = useState<"qasaed_only" | "albums_only">("albums_only");
+  const [folderOrder, setFolderOrder] = useState("0");
 
   // ── Modal flags ──────────────────────────────
   const [albumModalOpen, setAlbumModalOpen] = useState(false);
@@ -209,25 +233,37 @@ export default function AdminDashboard() {
   const [albumTitle, setAlbumTitle] = useState("");
   const [albumYear, setAlbumYear] = useState("");
   const [albumCategory, setAlbumCategory] = useState("sorrow");
+  const [albumFolderIdField, setAlbumFolderIdField] = useState<string>("none");
 
   // ── Site Update form ────────────────────────
   const [editingUpdate, setEditingUpdate] = useState<SiteUpdate | null>(null);
   const [updateContentText, setUpdateContentText] = useState("");
   const [updateLinkUrl, setUpdateLinkUrl] = useState("");
 
-  // ── Add-Poems form (multi-entry) ─────────────
-  const [poemModalAlbumId, setPoemModalAlbumId] = useState<number | null>(null);
-  const [poemEntries, setPoemEntries] = useState<{ title: string; url: string; order: string }[]>(
-    [{ title: "", url: "", order: "1" }],
-  );
+  // ── Add-Poems form ──
+  const [poemModalAlbumIdStr, setPoemModalAlbumIdStr] = useState<string>("none");
+  const [poemModalFolderIdStr, setPoemModalFolderIdStr] = useState<string>("none");
+  const [poemEntries, setPoemEntries] = useState<{
+    title: string;
+    url: string;
+    duration: string;
+    order: string;
+    release_year: string;
+    description: string;
+  }[]>([
+    { title: "", url: "", duration: "", order: "1", release_year: "", description: "" },
+  ]);
 
   // ── Edit single poem form ────────────────────
   const [editingAudio, setEditingAudio] = useState<AudioTrack | null>(null);
   const [editAudioTitle, setEditAudioTitle] = useState("");
   const [editAudioUrl, setEditAudioUrl] = useState("");
   const [editAudioOrder, setEditAudioOrder] = useState("0");
-  const [editAudioAlbumId, setEditAudioAlbumId] = useState("");
+  const [editAudioAlbumId, setEditAudioAlbumId] = useState<string>("none");
+  const [editAudioFolderId, setEditAudioFolderId] = useState<string>("none");
   const [editAudioDuration, setEditAudioDuration] = useState("");
+  const [editAudioReleaseYear, setEditAudioReleaseYear] = useState("");
+  const [editAudioDescription, setEditAudioDescription] = useState("");
 
   // ── Video form ───────────────────────────────
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
@@ -245,7 +281,7 @@ export default function AdminDashboard() {
 
   // ── Delete target ────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<{
-    type: "album" | "audio" | "message" | "video" | "update";
+    type: "album" | "audio" | "message" | "video" | "update" | "folder";
     id: number | string;
     label?: string;
   } | null>(null);
@@ -261,7 +297,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("albums")
-        .select("id, title, year, category, is_visible, created_at")
+        .select("id, title, year, category, folder_id, is_visible, created_at")
         .order("created_at", { ascending: false });
       if (error) throw new Error(`albums: ${error.message}`);
       setAlbums(data ?? []);
@@ -275,15 +311,24 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("audios")
-        .select(`id, title, audio_url, album_id, duration, "order", is_visible, created_at`)
+        .select(`id, title, audio_url, album_id, folder_id, duration, "order", description, release_year, is_visible, created_at`)
         .order("order", { ascending: true });
       if (error) {
         toast({ title: "تحذير – القصائد", description: error.message, variant: "destructive" });
         setAudios([]);
       } else {
-        setAudios(data ?? []);
+        setAudios((data ?? []) as AudioTrack[]);
       }
     } catch { setAudios([]); }
+
+    // Folders — non-fatal
+    try {
+      const { data, error } = await supabase
+        .from("audio_folders")
+        .select("id, name, category, folder_type, display_order, is_visible, created_at")
+        .order("display_order", { ascending: true });
+      if (!error && data) setFolders(data as AudioFolder[]);
+    } catch { setFolders([]); }
 
     // Site Updates — non-fatal
     try {
@@ -349,8 +394,81 @@ export default function AdminDashboard() {
     });
   }
 
+  function toggleFolderExpand(id: number) {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   // ─────────────────────────────────────────────
-  // VISIBILITY TOGGLE  (optimistic)
+  // FOLDER CRUD
+  // ─────────────────────────────────────────────
+  function openCreateFolderModal() {
+    setEditingFolder(null);
+    setFolderName("");
+    setFolderCategory("sorrow");
+    setFolderType("albums_only");
+    setFolderOrder("0");
+    setFolderModalOpen(true);
+  }
+
+  function openEditFolderModal(folder: AudioFolder) {
+    setEditingFolder(folder);
+    setFolderName(folder.name);
+    setFolderCategory(folder.category);
+    setFolderType(folder.folder_type ?? "albums_only");
+    setFolderOrder(String(folder.display_order ?? 0));
+    setFolderModalOpen(true);
+  }
+
+  async function handleSaveFolder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!folderName.trim()) {
+      toast({ title: "خطأ", description: "اسم المجلد مطلوب.", variant: "destructive" }); return;
+    }
+    const orderNum = parseInt(folderOrder, 10);
+    const payload = {
+      name: folderName.trim(),
+      category: folderCategory,
+      folder_type: folderType,
+      display_order: isNaN(orderNum) ? 0 : orderNum,
+    };
+    setActionLoading(true);
+    try {
+      if (editingFolder) {
+        const { error } = await supabase.from("audio_folders").update(payload).eq("id", editingFolder.id);
+        if (error) throw error;
+        toast({ title: "✓ تم التحديث", description: "تم تحديث المجلد." });
+      } else {
+        const { error } = await supabase.from("audio_folders").insert([{ ...payload, is_visible: true }]);
+        if (error) throw error;
+        toast({ title: "✓ تم الإضافة", description: "تم إنشاء المجلد بنجاح." });
+      }
+      setFolderModalOpen(false);
+      await fetchData();
+      router.refresh();
+    } catch (err: any) {
+      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
+    } finally { setActionLoading(false); }
+  }
+
+  async function handleToggleFolderVisibility(folder: AudioFolder) {
+    const newVisible = !folder.is_visible;
+    setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, is_visible: newVisible } : f));
+    try {
+      const { error } = await supabase.from("audio_folders").update({ is_visible: newVisible }).eq("id", folder.id);
+      if (error) throw error;
+      toast({ title: newVisible ? "✓ المجلد ظاهر الآن" : "✓ المجلد مخفي الآن" });
+    } catch (err: any) {
+      setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, is_visible: folder.is_visible } : f));
+      toast({ title: "خطأ في التحديث", description: err.message, variant: "destructive" });
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // VISIBILITY TOGGLE (optimistic)
   // ─────────────────────────────────────────────
   async function handleToggleVisibility(
     table: "albums" | "audios",
@@ -384,11 +502,12 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────
   // ALBUM CRUD
   // ─────────────────────────────────────────────
-  function openCreateAlbumModal() {
+  function openCreateAlbumModal(folderId?: number) {
     setEditingAlbum(null);
     setAlbumTitle("");
     setAlbumYear(new Date().getFullYear().toString());
     setAlbumCategory("sorrow");
+    setAlbumFolderIdField(folderId ? String(folderId) : "none");
     setAlbumModalOpen(true);
   }
   function openEditAlbumModal(album: Album) {
@@ -396,6 +515,7 @@ export default function AdminDashboard() {
     setAlbumTitle(safeStr(album.title, ""));
     setAlbumYear(safeStr(album.year, new Date().getFullYear().toString()));
     setAlbumCategory(album.category ?? "sorrow");
+    setAlbumFolderIdField(album.folder_id ? String(album.folder_id) : "none");
     setAlbumModalOpen(true);
   }
   async function handleSaveAlbum(e: React.FormEvent) {
@@ -404,11 +524,14 @@ export default function AdminDashboard() {
       toast({ title: "خطأ", description: "اسم الألبوم مطلوب.", variant: "destructive" }); return;
     }
     const yearNum = parseInt(albumYear, 10);
+    const folderIdNum = albumFolderIdField && albumFolderIdField !== "none" ? parseInt(albumFolderIdField, 10) : null;
     const payload = {
       title: albumTitle.trim(),
       year: isNaN(yearNum) ? null : yearNum,
       category: albumCategory,
+      folder_id: folderIdNum && !isNaN(folderIdNum) ? Number(folderIdNum) : null,
     };
+    console.log("[Admin handleSaveAlbum] Payload:", payload);
     setActionLoading(true);
     try {
       if (editingAlbum) {
@@ -422,59 +545,130 @@ export default function AdminDashboard() {
       }
       setAlbumModalOpen(false);
       await fetchData();
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("library-data-updated"));
+      }
     } catch (err: any) {
-      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
+      console.error("[Admin handleSaveAlbum] Error:", err);
+      toast({
+        title: "خطأ في حفظ الألبوم",
+        description: `${err.message || err} ${err.details ? " - " + err.details : ""}`,
+        variant: "destructive"
+      });
     } finally { setActionLoading(false); }
   }
 
   // ─────────────────────────────────────────────
-  // ADD POEMS  (multi-entry)
+  // ADD POEMS / QASAED
   // ─────────────────────────────────────────────
   function openAddPoemsForAlbum(albumId: number) {
-    setPoemModalAlbumId(albumId);
+    setPoemModalAlbumIdStr(String(albumId));
+    setPoemModalFolderIdStr("none");
     const albumAudios = audios.filter(a => a.album_id === albumId);
     const nextOrder = albumAudios.length > 0
       ? Math.max(...albumAudios.map(a => a.order ?? 0)) + 1
       : 1;
-    setPoemEntries([{ title: "", url: "", order: String(nextOrder) }]);
+    setPoemEntries([{ title: "", url: "", duration: "", order: String(nextOrder), release_year: "", description: "" }]);
     setPoemModalOpen(true);
   }
+
+  function openAddPoemForFolder(folderId: number) {
+    setPoemModalFolderIdStr(String(folderId));
+    setPoemModalAlbumIdStr("none");
+    const folderAudios = audios.filter(a => a.folder_id === folderId);
+    const nextOrder = folderAudios.length > 0
+      ? Math.max(...folderAudios.map(a => a.order ?? 0)) + 1
+      : 1;
+    setPoemEntries([{ title: "", url: "", duration: "", order: String(nextOrder), release_year: "", description: "" }]);
+    setPoemModalOpen(true);
+  }
+
   function addPoemEntry() {
     setPoemEntries(prev => {
       const last = parseInt(prev[prev.length - 1]?.order ?? "0", 10);
-      return [...prev, { title: "", url: "", order: String(isNaN(last) ? prev.length + 1 : last + 1) }];
+      return [...prev, { title: "", url: "", duration: "", order: String(isNaN(last) ? prev.length + 1 : last + 1), release_year: "", description: "" }];
     });
   }
+
   function removePoemEntry(idx: number) {
     setPoemEntries(prev => prev.filter((_, i) => i !== idx));
   }
-  function updatePoemEntry(idx: number, field: "title" | "url" | "order", value: string) {
+
+  function updatePoemEntry(idx: number, field: "title" | "url" | "duration" | "order" | "release_year" | "description", value: string) {
     setPoemEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
   }
+
   async function handleSavePoems(e: React.FormEvent) {
     e.preventDefault();
-    if (poemModalAlbumId === null) return;
     const validEntries = poemEntries.filter(e => e.url.trim());
     if (validEntries.length === 0) {
       toast({ title: "خطأ", description: "يرجى إدخال رابط صوتي لقصيدة واحدة على الأقل.", variant: "destructive" });
       return;
     }
+
+    const targetAlbumId = poemModalAlbumIdStr && poemModalAlbumIdStr !== "none"
+      ? parseInt(poemModalAlbumIdStr, 10)
+      : null;
+    const targetFolderId = poemModalFolderIdStr && poemModalFolderIdStr !== "none"
+      ? parseInt(poemModalFolderIdStr, 10)
+      : null;
+
+    if (!targetAlbumId && !targetFolderId) {
+      toast({ title: "خطأ", description: "يجب اختيار ألبوم أو مجلد قصائد لربط القصائد به.", variant: "destructive" });
+      return;
+    }
+
     setActionLoading(true);
     try {
-      const payloads = validEntries.map((entry, i) => ({
-        title: entry.title.trim() || `قصيدة ${i + 1}`,
-        audio_url: entry.url.trim(),
-        album_id: poemModalAlbumId,
-        order: parseInt(entry.order, 10) || (i + 1),
-        is_visible: true,
-      }));
+      const payloads = validEntries.map((entry, i) => {
+        const yearNum = entry.release_year ? parseInt(entry.release_year, 10) : NaN;
+        const base: Record<string, any> = {
+          title: entry.title.trim() || `قصيدة ${i + 1}`,
+          audio_url: entry.url.trim(),
+          duration: entry.duration.trim() || null,
+          order: parseInt(entry.order, 10) || (i + 1),
+          release_year: !isNaN(yearNum) ? yearNum : null,
+          description: entry.description.trim() || null,
+          is_visible: true,
+        };
+        if (targetAlbumId && !isNaN(targetAlbumId)) {
+          base.album_id = Number(targetAlbumId);
+        } else {
+          base.album_id = null;
+        }
+        if (targetFolderId && !isNaN(targetFolderId)) {
+          base.folder_id = Number(targetFolderId);
+        } else {
+          base.folder_id = null;
+        }
+        return base;
+      });
+      console.log("[Admin handleSavePoems] Payloads:", payloads);
       const { error } = await supabase.from("audios").insert(payloads);
-      if (error) throw error;
+      if (error) {
+        console.error("[Admin handleSavePoems] Supabase insert error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
       toast({ title: "✓ تم الإضافة", description: `تمت إضافة ${payloads.length} قصيدة بنجاح.` });
       setPoemModalOpen(false);
       await fetchData();
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("library-data-updated"));
+      }
     } catch (err: any) {
-      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
+      console.error("[Admin handleSavePoems] Exception caught:", err);
+      toast({
+        title: "خطأ في حفظ القصائد",
+        description: `${err.message || err} ${err.details ? " - " + err.details : ""} ${err.hint ? " (" + err.hint + ")" : ""}`,
+        variant: "destructive",
+      });
     } finally { setActionLoading(false); }
   }
 
@@ -486,8 +680,11 @@ export default function AdminDashboard() {
     setEditAudioTitle(safeStr(audio.title, ""));
     setEditAudioUrl(safeStr(audio.audio_url, ""));
     setEditAudioOrder(audio.order != null ? String(audio.order) : "0");
-    setEditAudioAlbumId(audio.album_id != null ? String(audio.album_id) : "");
+    setEditAudioAlbumId(audio.album_id ? String(audio.album_id) : "none");
+    setEditAudioFolderId(audio.folder_id ? String(audio.folder_id) : "none");
     setEditAudioDuration(safeStr(audio.duration, ""));
+    setEditAudioReleaseYear(audio.release_year != null ? String(audio.release_year) : "");
+    setEditAudioDescription(safeStr(audio.description, ""));
     setEditPoemModalOpen(true);
   }
   async function handleSaveEditPoem(e: React.FormEvent) {
@@ -496,15 +693,27 @@ export default function AdminDashboard() {
     if (!editAudioTitle.trim() || !editAudioUrl.trim()) {
       toast({ title: "خطأ", description: "العنوان والرابط مطلوبان.", variant: "destructive" }); return;
     }
-    const albumIdNum = parseInt(editAudioAlbumId, 10);
+    const albumIdVal = editAudioAlbumId && editAudioAlbumId !== "none" ? parseInt(editAudioAlbumId, 10) : null;
+    const folderIdVal = editAudioFolderId && editAudioFolderId !== "none" ? parseInt(editAudioFolderId, 10) : null;
+
     const orderNum = parseInt(editAudioOrder, 10);
-    const payload = {
+    const yearNum = editAudioReleaseYear ? parseInt(editAudioReleaseYear, 10) : NaN;
+    const payload: Record<string, any> = {
       title: editAudioTitle.trim(),
       audio_url: editAudioUrl.trim(),
-      album_id: isNaN(albumIdNum) ? null : albumIdNum,
       duration: editAudioDuration.trim() || null,
       order: isNaN(orderNum) ? 0 : orderNum,
+      release_year: !isNaN(yearNum) ? yearNum : null,
+      description: editAudioDescription.trim() || null,
     };
+    // Only set album_id if valid; otherwise omit to avoid NOT NULL violations
+    if (albumIdVal && !isNaN(albumIdVal)) {
+      payload.album_id = albumIdVal;
+    } else {
+      payload.album_id = null;
+    }
+    // Set folder_id (nullable column, safe to set null)
+    payload.folder_id = folderIdVal;
     setActionLoading(true);
     try {
       const { error } = await supabase.from("audios").update(payload).eq("id", editingAudio.id);
@@ -514,6 +723,18 @@ export default function AdminDashboard() {
       await fetchData();
     } catch (err: any) {
       toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
+    } finally { setActionLoading(false); }
+  }
+
+  async function handleRemovePoemFromFolder(poem: AudioTrack) {
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.from("audios").update({ folder_id: null }).eq("id", poem.id);
+      if (error) throw error;
+      toast({ title: "✓ تم إزالة القصيدة من المجلد" });
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ في إزالة القصيدة", description: err.message, variant: "destructive" });
     } finally { setActionLoading(false); }
   }
 
@@ -547,13 +768,15 @@ export default function AdminDashboard() {
       toast({ title: "خطأ", description: "عنوان الفيديو مطلوب.", variant: "destructive" }); return;
     }
     if (!videoYoutubeUrl.trim() || !isValidYouTubeUrl(videoYoutubeUrl)) {
-      toast({ title: "خطأ", description: "يرجى إدخال رابط يوتيوب صالح.", variant: "destructive" }); return;
+      setVideoUrlError("الرابط غير صالح. يرجى لصق رابط يوتيوب صحيح."); return;
     }
     const orderNum = parseInt(videoOrder, 10);
     const payload = {
-      title: videoTitle.trim(), description: videoDescription.trim(),
-      youtube_url: videoYoutubeUrl.trim(), category: videoCategory,
-      sub_category: videoSubCategory.trim(),
+      title: videoTitle.trim(),
+      description: videoDescription.trim() || null,
+      youtube_url: videoYoutubeUrl.trim(),
+      category: videoCategory,
+      sub_category: videoSubCategory.trim() || null,
       display_order: isNaN(orderNum) ? 0 : orderNum,
     };
     setActionLoading(true);
@@ -565,7 +788,7 @@ export default function AdminDashboard() {
       } else {
         const { error } = await supabase.from("videos").insert([payload]);
         if (error) throw error;
-        toast({ title: "✓ تم الإضافة", description: "تمت إضافة الفيديو بنجاح." });
+        toast({ title: "✓ تم الإضافة", description: "تم إنشاء الفيديو بنجاح." });
       }
       setVideoModalOpen(false);
       await fetchData();
@@ -583,69 +806,66 @@ export default function AdminDashboard() {
     setUpdateLinkUrl("");
     setUpdateModalOpen(true);
   }
-
-  function openEditUpdateModal(updateItem: SiteUpdate) {
-    setEditingUpdate(updateItem);
-    setUpdateContentText(safeStr(updateItem.content, ""));
-    setUpdateLinkUrl(safeStr(updateItem.link, ""));
+  function openEditUpdateModal(up: SiteUpdate) {
+    setEditingUpdate(up);
+    setUpdateContentText(up.content);
+    setUpdateLinkUrl(up.link ?? "");
     setUpdateModalOpen(true);
   }
-
   async function handleSaveUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!updateContentText.trim()) {
-      toast({ title: "خطأ", description: "نص التحديث مطلوب.", variant: "destructive" });
+      toast({ title: "خطأ", description: "محتوى التحديث مطلوب.", variant: "destructive" });
       return;
     }
+    setActionLoading(true);
     const payload = {
       content: updateContentText.trim(),
       link: updateLinkUrl.trim() || null,
     };
-    setActionLoading(true);
     try {
       if (editingUpdate) {
         const { error } = await supabase.from("site_updates").update(payload).eq("id", editingUpdate.id);
         if (error) throw error;
-        toast({ title: "✓ تم التحديث", description: "تم تحديث التحديث بنجاح." });
+        toast({ title: "✓ تم التحديث", description: "تم تحديث بيانات التحديث بنجاح." });
       } else {
         const { error } = await supabase.from("site_updates").insert([{ ...payload, is_visible: true }]);
         if (error) throw error;
-        toast({ title: "✓ تم الإضافة", description: "تمت إضافة التحديث بنجاح." });
+        toast({ title: "✓ تم الإضافة", description: "تم إضافة التحديث الجديد بنجاح." });
       }
       setUpdateModalOpen(false);
       await fetchData();
     } catch (err: any) {
       toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
-    } finally { setActionLoading(false); }
+    } finally {
+      setActionLoading(false);
+    }
   }
 
-  async function handleToggleUpdateVisibility(id: number | string, currentVisible: boolean) {
-    const newVisible = !currentVisible;
-    setSiteUpdates(prev => prev.map(u => u.id === id ? { ...u, is_visible: newVisible } : u));
+  async function handleToggleUpdateVisibility(up: SiteUpdate) {
+    const newVis = !(up.is_visible !== false);
+    setSiteUpdates(prev => prev.map(item => item.id === up.id ? { ...item, is_visible: newVis } : item));
     try {
-      const { error } = await supabase.from("site_updates").update({ is_visible: newVisible }).eq("id", id);
+      const { error } = await supabase.from("site_updates").update({ is_visible: newVis }).eq("id", up.id);
       if (error) throw error;
-      toast({
-        title: newVisible ? "✓ ظاهر الآن" : "✓ مخفي الآن",
-        description: newVisible ? "سيظهر التحديث في الشريط الرئيسي." : "لن يظهر التحديث للمستخدمين.",
-      });
+      toast({ title: newVis ? "✓ تم إظهار التحديث" : "✓ تم إخفاء التحديث" });
     } catch (err: any) {
-      setSiteUpdates(prev => prev.map(u => u.id === id ? { ...u, is_visible: currentVisible } : u));
-      toast({ title: "خطأ في التحديث", description: err.message, variant: "destructive" });
+      setSiteUpdates(prev => prev.map(item => item.id === up.id ? { ...item, is_visible: up.is_visible } : item));
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
   }
 
   // ─────────────────────────────────────────────
   // DELETE
   // ─────────────────────────────────────────────
-  function requestDelete(type: "album" | "audio" | "message" | "video" | "update", id: number | string, label?: string) {
+  function requestDelete(type: "album" | "audio" | "message" | "video" | "update" | "folder", id: number | string, label?: string) {
     setDeleteTarget({ type, id, label });
     setDeleteConfirmOpen(true);
   }
   async function executeDelete() {
     if (!deleteTarget) return;
     const tableMap: Record<string, string> = {
-      album: "albums", audio: "audios", message: "messages", video: "videos", update: "site_updates",
+      album: "albums", audio: "audios", message: "messages", video: "videos", update: "site_updates", folder: "audio_folders",
     };
     setActionLoading(true);
     try {
@@ -664,230 +884,208 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────
   // DERIVED DATA
   // ─────────────────────────────────────────────
-  const q = normalizeArabic(searchQuery);
+  const poemModalAlbum = albums.find(a => String(a.id) === poemModalAlbumIdStr);
+  const poemModalFolder = folders.find(f => String(f.id) === poemModalFolderIdStr);
 
-  const filteredAlbums = albums.filter(a =>
-    !q ||
-    normalizeArabic(a.title).includes(q) ||
-    normalizeArabic(a.year).includes(q) ||
-    normalizeArabic(getCategoryLabel(a.category)).includes(q)
-  );
+  const filteredAlbums = albums.filter(a => {
+    if (!searchQuery.trim()) return true;
+    const q = normalizeArabic(searchQuery);
+    return normalizeArabic(safeStr(a.title)).includes(q) || safeStr(a.year).includes(q);
+  });
 
-  const filteredUpdates = siteUpdates.filter(u =>
-    !q ||
-    normalizeArabic(u.content).includes(q) ||
-    normalizeArabic(u.link).includes(q)
-  );
-
-  const getAlbumPoems = (albumId: number) =>
-    audios
-      .filter(a => a.album_id === albumId && (!q || normalizeArabic(a.title).includes(q)))
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-  const filteredVideos = videos.filter(v =>
-    !q ||
-    normalizeArabic(v.title).includes(q) ||
-    normalizeArabic(v.youtube_url).includes(q) ||
-    normalizeArabic(getVideoCategoryLabel(v.category)).includes(q)
-  );
-
-  const filteredMessages = messages.filter(m =>
-    !q ||
-    normalizeArabic(m.name).includes(q) ||
-    normalizeArabic(m.email).includes(q) ||
-    normalizeArabic(m.subject).includes(q) ||
-    normalizeArabic(m.message).includes(q)
-  );
-
-  const poemModalAlbum = albums.find(a => a.id === poemModalAlbumId);
+  function getAlbumPoems(albumId: number) {
+    return audios.filter(a => a.album_id === albumId);
+  }
 
   // ─────────────────────────────────────────────
-  // REUSABLE UI
-  // ─────────────────────────────────────────────
-  const NavBtn = ({ tab, icon: Icon, label, count }: {
-    tab: Tab; icon: React.ElementType; label: string; count?: number;
-  }) => (
-    <button
-      onClick={() => { setActiveTab(tab); setSearchQuery(""); }}
-      className={`w-full flex items-center gap-3 px-3.5 h-10 rounded-xl text-xs font-semibold transition-all duration-150 ${
-        activeTab === tab
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-foreground/55 hover:bg-muted hover:text-foreground"
-      }`}
-    >
-      <Icon className="w-4 h-4 shrink-0" />
-      <span className="flex-1 text-right truncate">{label}</span>
-      {count != null && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums min-w-[1.25rem] text-center ${
-          activeTab === tab
-            ? "bg-white/20 text-primary-foreground"
-            : "bg-muted text-foreground/40"
-        }`}>{count}</span>
-      )}
-    </button>
-  );
-
-  // ═══════════════════════════════════════════
   // RENDER
-  // ═══════════════════════════════════════════
+  // ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-muted/20 flex text-foreground" dir="rtl">
+    <div className="min-h-screen bg-background text-foreground font-sans dir-rtl antialiased selection:bg-primary/20 selection:text-primary">
 
-      {/* ── SIDEBAR ─────────────────────────── */}
-      <aside className="hidden md:flex w-56 shrink-0 bg-card border-l border-border flex-col justify-between py-5 px-3.5 shadow-sm">
-        <div className="space-y-5">
-          {/* Brand */}
-          <div className="px-1.5 pb-4 border-b border-border">
-            <h2 className="text-sm font-bold text-primary">صالح الدرازي</h2>
-            <p className="text-[9px] text-foreground/35 mt-0.5 font-medium tracking-widest uppercase">لوحة التحكم</p>
+      {/* ══ HEADER ════════════════════════════════ */}
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+
+          {/* Title / Identity */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-sm">
+              <FolderHeart className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-foreground leading-tight">
+                لوحة التحكم الإدارية
+              </h1>
+              <p className="text-[11px] text-foreground/50 hidden sm:block">
+                مكتبة الشيخ صالح الدرازي
+              </p>
+            </div>
           </div>
-          {/* Nav */}
-          <nav className="space-y-0.5">
-            <NavBtn tab="overview" icon={LayoutDashboard} label="الإحصائيات" />
-            <NavBtn tab="management" icon={FolderHeart} label="الألبومات والقصائد" count={albums.length} />
-            <NavBtn tab="updates" icon={Bell} label="شريط التحديثات" count={siteUpdates.length} />
-            <NavBtn tab="videos" icon={Youtube} label="المرئيات" count={videos.length} />
-            <NavBtn tab="messages" icon={Mail} label="الرسائل" count={messages.length} />
-          </nav>
-        </div>
-        {/* Footer */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1.5 mb-1">
-            <span className="text-[9px] text-foreground/30 font-bold uppercase tracking-widest">المظهر</span>
-            <ThemeSwitcher />
-          </div>
-          <a href="/" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 px-3 h-9 text-[11px] font-medium text-primary border border-primary/20 rounded-xl hover:bg-primary/5 transition-colors">
-            <ExternalLink className="w-3.5 h-3.5" /> عرض الموقع
-          </a>
-          <button onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 h-9 text-[11px] font-medium text-red-500 border border-red-200 dark:border-red-900/20 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
-            <LogOut className="w-3.5 h-3.5" /> تسجيل الخروج
-          </button>
-        </div>
-      </aside>
 
-      {/* ── MAIN ────────────────────────────── */}
-      <main className="flex-1 min-w-0 flex flex-col">
-
-        {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-border shadow-sm sticky top-0 z-10">
-          <span className="text-sm font-bold text-primary">صالح الدرازي</span>
+          {/* Header Controls */}
           <div className="flex items-center gap-2">
-            <ThemeSwitcher />
-            <Select value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-              <SelectTrigger className="h-8 text-xs bg-background border-border w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="overview">الإحصائيات</SelectItem>
-                <SelectItem value="management">الألبومات</SelectItem>
-                <SelectItem value="updates">التحديثات</SelectItem>
-                <SelectItem value="videos">المرئيات</SelectItem>
-                <SelectItem value="messages">الرسائل</SelectItem>
-              </SelectContent>
-            </Select>
-            <button onClick={handleLogout}
-              className="h-8 w-8 flex items-center justify-center text-red-500 border border-red-200 dark:border-red-900/20 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </header>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchData}
+              disabled={loading}
+              className="h-9 w-9 p-0 rounded-xl text-foreground/70 hover:text-foreground hover:bg-muted"
+              title="تحديث البيانات"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-primary" : ""}`} />
+            </Button>
 
-        {/* Content area */}
-        {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-7 h-7 text-primary animate-spin" />
-            <p className="text-xs text-foreground/40">جاري تحميل البيانات…</p>
-          </div>
-        ) : fetchError ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8">
-            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-              <AlertTriangle className="w-7 h-7 text-destructive" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-destructive">فشل تحميل البيانات</p>
-              <p className="text-xs text-foreground/40 mt-1 max-w-sm">{fetchError}</p>
-            </div>
-            <Button onClick={fetchData} size="sm" className="rounded-xl">
-              <RefreshCw className="w-3.5 h-3.5 ml-2" /> إعادة المحاولة
+            <ThemeSwitcher />
+
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-xl text-foreground/70 hover:text-foreground bg-muted/60 hover:bg-muted border border-border transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>الموقع العام</span>
+            </a>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="h-9 px-3 text-xs font-bold rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-colors gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-5 md:p-7 max-w-5xl mx-auto w-full space-y-5">
+        </div>
+      </header>
 
-            {/* Page header */}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h1 className="text-lg font-bold text-foreground">
-                  {activeTab === "overview" && "الإحصائيات العامة"}
-                  {activeTab === "management" && "إدارة الألبومات والقصائد"}
-                  {activeTab === "updates" && "إدارة شريط التحديثات"}
-                  {activeTab === "videos" && "إدارة المرئيات"}
-                  {activeTab === "messages" && "الرسائل الواردة"}
-                </h1>
-                <p className="text-[11px] text-foreground/40 mt-0.5">
-                  {activeTab === "overview" && "ملخص شامل لمحتوى قاعدة البيانات."}
-                  {activeTab === "management" && "انقر على ألبوم لعرض قصائده وإدارتها."}
-                  {activeTab === "updates" && "إضافة وتعديل التحديثات المتحركة في أعلى الموقع."}
-                  {activeTab === "videos" && "أضف مرئيات يوتيوب بلصق الرابط مباشرةً."}
-                  {activeTab === "messages" && "الرسائل الواردة من نموذج التواصل."}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button variant="outline" size="icon" onClick={fetchData}
-                  className="h-9 w-9 rounded-xl bg-background border-border hover:bg-muted" title="تحديث">
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </Button>
-                {activeTab === "management" && (
-                  <Button onClick={openCreateAlbumModal}
-                    className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm">
-                    <Plus className="w-3.5 h-3.5 ml-1.5" /> ألبوم جديد
-                  </Button>
-                )}
-                {activeTab === "updates" && (
-                  <Button onClick={openCreateUpdateModal}
-                    className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm">
-                    <Plus className="w-3.5 h-3.5 ml-1.5" /> تحديث جديد
-                  </Button>
-                )}
-                {activeTab === "videos" && (
-                  <Button onClick={openCreateVideoModal}
-                    className="h-9 px-4 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm">
-                    <Plus className="w-3.5 h-3.5 ml-1.5" /> فيديو جديد
-                  </Button>
-                )}
-              </div>
+      {/* ══ SUB-HEADER (Tabs & Quick Action) ════ */}
+      <div className="bg-card/50 border-b border-border py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
+
+          {/* Navigation Tabs */}
+          <nav className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 no-scrollbar">
+            {[
+              { id: "overview" as Tab, label: "نظرة عامة", icon: LayoutDashboard },
+              { id: "management" as Tab, label: "المجلدات والألبومات", icon: FolderHeart, count: albums.length },
+              { id: "updates" as Tab, label: "شريط الأخبار", icon: Bell, count: siteUpdates.length },
+              { id: "videos" as Tab, label: "المرئيات", icon: Youtube, count: videos.length },
+              { id: "messages" as Tab, label: "الرسائل", icon: Mail, count: messages.length },
+            ].map(({ id, label, icon: Icon, count }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-foreground/60 hover:text-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{label}</span>
+                  {count !== undefined && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-foreground/60"
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Action buttons on tab switch */}
+          {activeTab === "management" && (
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              <Button
+                onClick={openCreateFolderModal}
+                size="sm"
+                variant="outline"
+                className="h-9 px-3.5 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
+              >
+                <Folder className="w-4 h-4" />
+                <span>مجلد جديد</span>
+              </Button>
+
+              <Button
+                onClick={() => openCreateAlbumModal()}
+                size="sm"
+                className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>ألبوم جديد</span>
+              </Button>
             </div>
+          )}
 
-            {/* Search bar */}
-            {activeTab !== "overview" && (
-              <div className="relative max-w-xs">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground/30 pointer-events-none" />
-                <Input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder={
-                    activeTab === "management" ? "ابحث في الألبومات والقصائد…"
-                    : activeTab === "updates" ? "ابحث في التحديثات…"
-                    : activeTab === "videos" ? "ابحث في المرئيات…"
-                    : "ابحث في الرسائل…"
-                  }
-                  className="pr-8 h-9 text-xs bg-background border-border rounded-xl text-right"
-                />
-              </div>
-            )}
+          {activeTab === "updates" && (
+            <div className="flex items-center justify-end w-full md:w-auto">
+              <Button
+                onClick={openCreateUpdateModal}
+                size="sm"
+                className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>تحديث جديد</span>
+              </Button>
+            </div>
+          )}
 
+          {activeTab === "videos" && (
+            <div className="flex items-center justify-end w-full md:w-auto">
+              <Button
+                onClick={openCreateVideoModal}
+                size="sm"
+                className="h-9 px-4 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>فيديو جديد</span>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ MAIN BODY ═════════════════════════════ */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Global Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-foreground/40">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-xs font-semibold">جاري جلب البيانات من السيرفر...</p>
+          </div>
+        )}
+
+        {/* Fetch Error state */}
+        {fetchError && !loading && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-6 text-center space-y-3">
+            <AlertTriangle className="w-8 h-8 text-destructive mx-auto" />
+            <h3 className="text-sm font-bold text-destructive">فشل تحميل البيانات الأساسية</h3>
+            <p className="text-xs text-foreground/60 max-w-md mx-auto">{fetchError}</p>
+            <Button onClick={fetchData} size="sm" variant="outline" className="rounded-xl text-xs font-bold border-destructive/40">
+              إعادة المحاولة
+            </Button>
+          </div>
+        )}
+
+        {!loading && !fetchError && (
+          <div>
             {/* ══ OVERVIEW ══════════════════════ */}
             {activeTab === "overview" && (
-              <div className="space-y-5">
-                {/* Stats grid */}
+              <div className="space-y-6">
+
+                {/* Stats cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
+                    { icon: Folder, label: "المجلدات", count: folders.length, tab: "management" as Tab, color: "text-primary" },
                     { icon: FolderHeart, label: "الألبومات", count: albums.length, tab: "management" as Tab, color: "text-primary" },
                     { icon: Music, label: "القصائد", count: audios.length, tab: "management" as Tab, color: "text-primary" },
                     { icon: Youtube, label: "المرئيات", count: videos.length, tab: "videos" as Tab, color: "text-red-500" },
-                    { icon: Mail, label: "الرسائل", count: messages.length, tab: "messages" as Tab, color: "text-amber-500" },
                   ].map(({ icon: Icon, label, count, tab, color }) => (
                     <button key={label} onClick={() => setActiveTab(tab)}
                       className="bg-card border border-border rounded-2xl p-4 text-right hover:border-primary/25 hover:shadow-md transition-all group text-left">
@@ -905,7 +1103,14 @@ export default function AdminDashboard() {
                 {/* Visibility summary */}
                 <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">ملخص الظهور</h3>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div className="space-y-1.5">
+                      <p className="text-foreground/40 font-bold uppercase tracking-wider text-[9px]">المجلدات</p>
+                      <div className="flex gap-3">
+                        <span className="text-emerald-600 font-semibold">{folders.filter(f => f.is_visible !== false).length} ظاهر</span>
+                        <span className="text-foreground/30">{folders.filter(f => f.is_visible === false).length} مخفي</span>
+                      </div>
+                    </div>
                     <div className="space-y-1.5">
                       <p className="text-foreground/40 font-bold uppercase tracking-wider text-[9px]">الألبومات</p>
                       <div className="flex gap-3">
@@ -928,10 +1133,10 @@ export default function AdminDashboard() {
                   <h3 className="text-sm font-semibold text-foreground">إرشادات سريعة</h3>
                   <ul className="space-y-2">
                     {[
-                      "أنشئ ألبوماً أولاً ثم أضف قصائده مباشرةً من صفحة الإدارة.",
-                      "في صفحة الإدارة، انقر على اسم الألبوم لعرض قصائده المرتبة وإدارتها.",
-                      "يمكنك إضافة عدة قصائد دفعةً واحدة (عنوان + رابط + رقم المقطع لكل منها).",
-                      "اضبط مفتاح الظهور لإخفاء أي قصيدة أو ألبوم دون حذفه من قاعدة البيانات.",
+                      "يمكنك إضافة نوعين من المجلدات: مجلدات خاصة بالألبومات فقط، ومجلدات خاصة بالقصائد المستقلة فقط.",
+                      "أنشئ الألبوم أو المجلد أولاً ثم أضف القصائد إليه بسهولة.",
+                      "تظهر المجلدات في الواجهة الرئيسية للموقع كشبكة مستطيلة بلمسات ذهبية أنيقة.",
+                      "عند الضغط على المجلد في الموقع يتم فتح محتوياته في نفس الصفحة مع زر تشغيل عشوائي مخصص لمحتويات المجلد.",
                     ].map((tip, i) => (
                       <li key={i} className="flex items-start gap-2.5 text-xs text-foreground/55">
                         <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
@@ -943,9 +1148,255 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* ══ MANAGEMENT (accordion) ════════ */}
+            {/* ══ MANAGEMENT ════════════════════ */}
             {activeTab === "management" && (
-              <div className="space-y-2.5">
+              <div className="space-y-6">
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/40" />
+                  <Input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="البحث في الألبومات بالنص أو السنة..."
+                    className="pr-10 h-11 text-xs bg-card border-border rounded-2xl text-right"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* ── FOLDERS SECTION ── */}
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <Folder className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">المجلدات المُخصصة</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/15">{folders.length}</span>
+                    </div>
+                    <Button
+                      onClick={openCreateFolderModal}
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-[10px] font-bold rounded-lg border-primary/30 text-primary gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> مجلد جديد
+                    </Button>
+                  </div>
+
+                  {folders.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-foreground/40">
+                      لا توجد مجلدات بعد. أنشئ مجلداً لتجميع الألبومات أو القصائد.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/40 p-2 space-y-1.5">
+                      {folders.map(folder => {
+                        const isVisible = folder.is_visible !== false;
+                        const folderAlbums = albums.filter(a => a.folder_id === folder.id);
+                        const folderQasaed = audios.filter(a => a.folder_id === folder.id);
+                        const isAlbumsOnly = folder.folder_type === "albums_only";
+                        const isFolderExpanded = expandedFolders.has(folder.id);
+
+                        return (
+                          <div
+                            key={folder.id}
+                            className={`rounded-xl bg-card border transition-all ${
+                              isVisible ? "border-border/50" : "border-border/30 opacity-65"
+                            } ${isFolderExpanded ? "ring-1 ring-primary/15" : ""}`}
+                          >
+                            <div className="flex items-center justify-between p-3 gap-2">
+                              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleFolderExpand(folder.id)}
+                                  className="p-1 rounded-lg shrink-0 text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors"
+                                  title={isFolderExpanded ? "إغلاق محتويات المجلد" : "عرض محتويات المجلد"}
+                                >
+                                  {isFolderExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                                  {isAlbumsOnly ? <FolderHeart className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-semibold text-xs text-foreground truncate">{folder.name}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${getCategoryColor(folder.category)}`}>
+                                      {getCategoryLabel(folder.category)}
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${
+                                      isAlbumsOnly ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                    }`}>
+                                      {isAlbumsOnly ? "مجلد ألبومات" : "مجلد قصائد"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-foreground/40 mt-0.5">
+                                    {isAlbumsOnly ? `${folderAlbums.length} ألبوم` : `${folderQasaed.length} قصيدة`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* 3-Column Circle Action Controls Layout */}
+                              <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
+                                {isAlbumsOnly ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openCreateAlbumModal(folder.id)}
+                                    className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                    title="إضافة ألبوم للمجلد"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => openAddPoemForFolder(folder.id)}
+                                    className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                    title="إضافة قصيدة للمجلد"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => openEditFolderModal(folder)}
+                                  className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                  title="تعديل المجلد"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => requestDelete("folder", folder.id, folder.name)}
+                                  className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                  title="حذف المجلد"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                                <VisibilityToggle
+                                  checked={isVisible}
+                                  onCheckedChange={() => handleToggleFolderVisibility(folder)}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Expanded Folder Contents */}
+                            {isFolderExpanded && (
+                              <div className="border-t border-border/40 p-3 bg-muted/20 space-y-2">
+                                {isAlbumsOnly ? (
+                                  folderAlbums.length === 0 ? (
+                                    <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد ألبومات في هذا المجلد بعد.</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {folderAlbums.map(alb => (
+                                        <div key={alb.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/40 text-xs">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <FolderHeart className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                            <span className="font-semibold text-foreground truncate">{safeStr(alb.title)}</span>
+                                            {alb.year && <span className="text-[10px] font-mono text-foreground/40">({alb.year})</span>}
+                                          </div>
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => openEditAlbumModal(alb)}
+                                              className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center"
+                                              title="تعديل الألبوم"
+                                            >
+                                              <Edit2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                ) : (
+                                  folderQasaed.length === 0 ? (
+                                    <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد قصائد في هذا المجلد بعد.</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {folderQasaed.map(poem => {
+                                        const poemVisible = poem.is_visible !== false;
+                                        return (
+                                          <div
+                                            key={poem.id}
+                                            className={`flex items-center justify-between p-2.5 rounded-xl bg-card border border-border/40 text-xs ${
+                                              poemVisible ? "" : "opacity-50"
+                                            }`}
+                                          >
+                                            <div className="min-w-0 flex-1 space-y-0.5">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-mono text-[10px] text-foreground/30 w-4 text-center shrink-0">
+                                                  {poem.order ?? "—"}
+                                                </span>
+                                                <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                                <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
+                                                {poem.release_year && (
+                                                  <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary px-1.5 py-0.2 rounded-full border border-primary/20">
+                                                    سنة {poem.release_year}
+                                                  </span>
+                                                )}
+                                                {poem.duration && (
+                                                  <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
+                                                )}
+                                              </div>
+                                              {poem.description && (
+                                                <p className="text-[11px] text-foreground/50 line-clamp-1 pr-6">
+                                                  {poem.description}
+                                                </p>
+                                              )}
+                                            </div>
+
+                                            {/* Action Controls */}
+                                            <div className="flex items-center gap-1.5 shrink-0 me-1">
+                                              <button
+                                                type="button"
+                                                onClick={() => openEditPoemModal(poem)}
+                                                className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center transition-all hover:scale-110"
+                                                title="تعديل القصيدة والبيانات"
+                                              >
+                                                <Edit2 className="w-3 h-3" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemovePoemFromFolder(poem)}
+                                                className="w-7 h-7 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/25 text-amber-500 flex items-center justify-center transition-all hover:scale-110"
+                                                title="إزالة القصيدة من هذا المجلد"
+                                              >
+                                                <X className="w-3 h-3" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
+                                                className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center transition-all hover:scale-110"
+                                                title="حذف القصيدة نهائياً"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </button>
+                                              <VisibilityToggle
+                                                checked={poemVisible}
+                                                onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Albums List Section ── */}
                 {filteredAlbums.length === 0 ? (
                   <div className="bg-card border border-border rounded-2xl py-16 text-center space-y-3">
                     <FolderHeart className="w-10 h-10 text-foreground/15 mx-auto" />
@@ -953,7 +1404,7 @@ export default function AdminDashboard() {
                       {searchQuery ? "لا توجد نتائج مطابقة." : "لا توجد ألبومات. أضف ألبومك الأول!"}
                     </p>
                     {!searchQuery && (
-                      <Button onClick={openCreateAlbumModal} size="sm" className="rounded-xl">
+                      <Button onClick={() => openCreateAlbumModal()} size="sm" className="rounded-xl">
                         <Plus className="w-3.5 h-3.5 ml-1.5" /> ألبوم جديد
                       </Button>
                     )}
@@ -962,7 +1413,7 @@ export default function AdminDashboard() {
                   const albumPoems = getAlbumPoems(album.id);
                   const isExpanded = expandedAlbums.has(album.id);
                   const isVisible = album.is_visible !== false;
-                  const totalPoems = audios.filter(a => a.album_id === album.id).length;
+                  const parentFolder = folders.find(f => f.id === album.folder_id);
 
                   return (
                     <div key={album.id}
@@ -998,154 +1449,116 @@ export default function AdminDashboard() {
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getCategoryColor(album.category)}`}>
                                 {getCategoryLabel(album.category)}
                               </span>
+                              {parentFolder && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                                  <Folder className="w-2.5 h-2.5" />
+                                  {parentFolder.name}
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-foreground/35 mt-0.5 flex items-center gap-2">
-                              <span>{totalPoems} قصيدة</span>
+                              <span>{albumPoems.length} قصيدة</span>
                               {!isVisible && <span className="text-foreground/25">· مخفي</span>}
                             </p>
                           </div>
                         </button>
 
-                        {/* Right controls */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {/* Add poem — hidden on small screens */}
-                          <Button
-                            size="sm" variant="outline"
-                            onClick={() => openAddPoemsForAlbum(album.id)}
-                            className="hidden sm:flex h-7 px-2.5 text-[10px] font-bold rounded-lg border-primary/25 text-primary hover:bg-primary/8 gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> قصيدة
-                          </Button>
-
-                          {/* Visibility switch */}
-                          <VisibilityToggle
-                            checked={isVisible}
-                            onCheckedChange={() => handleToggleVisibility("albums", album.id, isVisible)}
-                          />
-
-                          {/* Edit */}
+                        {/* 3-Column Circle Action Controls Layout */}
+                        <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
                           <button
+                            type="button"
+                            onClick={() => openAddPoemsForAlbum(album.id)}
+                            className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                            title="إضافة قصيدة للألبوم"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => openEditAlbumModal(album)}
-                            className="p-1.5 rounded-lg text-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                            className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
                             title="تعديل الألبوم"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
-
-                          {/* Delete */}
                           <button
+                            type="button"
                             onClick={() => requestDelete("album", album.id, safeStr(album.title))}
-                            className="p-1.5 rounded-lg text-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
                             title="حذف الألبوم"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+                          <VisibilityToggle
+                            checked={isVisible}
+                            onCheckedChange={() => handleToggleVisibility("albums", album.id, isVisible)}
+                          />
                         </div>
                       </div>
 
                       {/* ── Poems (expanded) ── */}
                       {isExpanded && (
                         <div>
-                          {/* Mobile add poem */}
-                          <div className="sm:hidden px-4 py-2 border-b border-border/50">
-                            <Button size="sm" variant="outline"
-                              onClick={() => openAddPoemsForAlbum(album.id)}
-                              className="h-7 text-[10px] font-bold text-primary border-primary/25 hover:bg-primary/8 rounded-lg">
-                              <Plus className="w-3 h-3 ml-1" /> إضافة قصيدة لهذا الألبوم
-                            </Button>
-                          </div>
-
                           {albumPoems.length === 0 ? (
-                            <div className="py-10 text-center space-y-3">
-                              <Music className="w-7 h-7 text-foreground/15 mx-auto" />
-                              <p className="text-xs text-foreground/35">لا توجد قصائد في هذا الألبوم.</p>
-                              <Button size="sm" onClick={() => openAddPoemsForAlbum(album.id)}
-                                className="rounded-xl text-xs h-8">
-                                <Plus className="w-3.5 h-3.5 ml-1" /> أضف أول قصيدة
+                            <div className="py-8 text-center space-y-2">
+                              <p className="text-xs text-foreground/40">لا توجد قصائد في هذا الألبوم بعد.</p>
+                              <Button
+                                size="sm" variant="outline"
+                                onClick={() => openAddPoemsForAlbum(album.id)}
+                                className="h-7 text-[11px] rounded-lg border-primary/25 text-primary"
+                              >
+                                <Plus className="w-3 h-3 ml-1" /> إضافة قصائد
                               </Button>
                             </div>
                           ) : (
-                            <>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="border-b border-border/60">
-                                      <th className="text-right text-foreground/35 font-bold px-4 py-2.5 w-12 text-[10px] tracking-wider">#</th>
-                                      <th className="text-right text-foreground/35 font-bold px-3 py-2.5 text-[10px] tracking-wider">عنوان القصيدة</th>
-                                      <th className="text-right text-foreground/35 font-bold px-3 py-2.5 text-[10px] tracking-wider hidden md:table-cell">رابط الملف الصوتي</th>
-                                      <th className="text-center text-foreground/35 font-bold px-3 py-2.5 w-20 text-[10px] tracking-wider">الظهور</th>
-                                      <th className="text-center text-foreground/35 font-bold px-3 py-2.5 w-20 text-[10px] tracking-wider">إجراءات</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {albumPoems.map((poem, pIdx) => {
-                                      const poemVisible = poem.is_visible !== false;
-                                      return (
-                                        <tr key={poem.id}
-                                          className={`border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors ${
-                                            !poemVisible ? "opacity-45" : ""
-                                          }`}
-                                        >
-                                          {/* Order # */}
-                                          <td className="px-4 py-3 font-mono text-foreground/30 text-center text-xs">
-                                            {poem.order ?? pIdx + 1}
-                                          </td>
-                                          {/* Title */}
-                                          <td className="px-3 py-3">
-                                            <span className="font-medium text-foreground">{safeStr(poem.title)}</span>
-                                            {poem.duration && (
-                                              <span className="block font-mono text-foreground/30 text-[9px] mt-0.5">{poem.duration}</span>
-                                            )}
-                                          </td>
-                                          {/* URL */}
-                                          <td className="px-3 py-3 hidden md:table-cell max-w-[200px]">
-                                            {poem.audio_url ? (
-                                              <a href={poem.audio_url} target="_blank" rel="noreferrer"
-                                                className="flex items-center gap-1.5 text-foreground/30 hover:text-primary transition-colors group/link">
-                                                <Link2 className="w-3 h-3 text-primary shrink-0" />
-                                                <span className="truncate font-mono text-[9px] group-hover/link:text-primary">
-                                                  {poem.audio_url}
-                                                </span>
-                                              </a>
-                                            ) : (
-                                              <span className="text-foreground/20 text-[9px]">لا يوجد رابط</span>
-                                            )}
-                                          </td>
-                                          {/* Visibility toggle */}
-                                          <td className="px-3 py-3">
-                                            <VisibilityToggle
-                                              checked={poemVisible}
-                                              onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
-                                            />
-                                          </td>
-                                          {/* Actions */}
-                                          <td className="px-3 py-3">
-                                            <div className="flex items-center justify-center gap-0.5">
-                                              <button onClick={() => openEditPoemModal(poem)}
-                                                className="p-1.5 rounded-lg text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors">
-                                                <Edit2 className="w-3.5 h-3.5" />
-                                              </button>
-                                              <button onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
-                                                className="p-1.5 rounded-lg text-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
+                            <div className="divide-y divide-border/40 p-2 space-y-1.5">
+                              {albumPoems.map(poem => {
+                                const poemVisible = poem.is_visible !== false;
+                                return (
+                                  <div
+                                    key={poem.id}
+                                    className={`flex items-center justify-between p-2.5 rounded-xl bg-card/60 border border-border/40 text-xs transition-opacity ${
+                                      poemVisible ? "" : "opacity-50"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="font-mono text-[10px] text-foreground/30 w-5 text-center shrink-0">
+                                        {poem.order ?? "—"}
+                                      </span>
+                                      <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                      <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
+                                      {poem.duration && (
+                                        <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
+                                      )}
+                                    </div>
 
-                              {/* Footer: add more */}
-                              <div className="border-t border-border/40 px-4 py-2.5">
-                                <button onClick={() => openAddPoemsForAlbum(album.id)}
-                                  className="flex items-center gap-1.5 text-[10px] font-bold text-primary/60 hover:text-primary transition-colors">
-                                  <Plus className="w-3 h-3" /> إضافة المزيد من القصائد
-                                </button>
-                              </div>
-                            </>
+                                    {/* 3-Column Circle Action Controls Layout */}
+                                    <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditPoemModal(poem)}
+                                        className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                        title="تعديل القصيدة"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
+                                        className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                        title="حذف القصيدة"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                      <VisibilityToggle
+                                        checked={poemVisible}
+                                        onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
                       )}
@@ -1155,155 +1568,143 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* ══ UPDATES ═══════════════════════ */}
+            {/* ══ SITE UPDATES TAB ══════════════ */}
             {activeTab === "updates" && (
-              <div className="space-y-2.5">
-                {filteredUpdates.length === 0 ? (
-                  <div className="bg-card border border-border rounded-2xl py-16 text-center">
-                    <Bell className="w-10 h-10 text-foreground/15 mx-auto mb-3" />
-                    <p className="text-sm text-foreground/40">{searchQuery ? "لا نتائج مطابقة." : "لا توجد تحديثات حالية."}</p>
-                    {!searchQuery && (
-                      <Button onClick={openCreateUpdateModal} size="sm" className="mt-4 rounded-xl">
-                        <Plus className="w-3.5 h-3.5 ml-1.5" /> إضافة تحديث جديد
-                      </Button>
-                    )}
-                  </div>
-                ) : filteredUpdates.map(updateItem => {
-                  const isVisible = updateItem.is_visible !== false;
-                  return (
-                    <div key={updateItem.id}
-                      className={`bg-card border rounded-2xl p-4 flex items-center justify-between gap-4 transition-all ${
-                        isVisible ? "border-border shadow-sm" : "border-border/50 opacity-60"
-                      }`}>
-                      <div className="flex-1 min-w-0 text-right">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs sm:text-sm font-semibold text-foreground">{safeStr(updateItem.content)}</span>
-                          {!isVisible && <span className="text-[9px] text-foreground/40 bg-muted px-2 py-0.5 rounded-full font-bold">مخفي</span>}
-                        </div>
-                        {updateItem.link && (
-                          <a href={updateItem.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block mt-1 truncate font-mono text-[11px]" dir="ltr">
-                            {updateItem.link}
-                          </a>
-                        )}
-                        <span className="text-[10px] text-foreground/35 block mt-1">{safeDate(updateItem.created_at)}</span>
-                      </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-foreground">التحديثات المعلنة في أعلى الموقع</h2>
+                </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <VisibilityToggle
-                          checked={isVisible}
-                          onCheckedChange={() => handleToggleUpdateVisibility(updateItem.id, isVisible)}
-                        />
-                        <button onClick={() => openEditUpdateModal(updateItem)}
-                          className="p-2 rounded-xl text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors"
-                          title="تعديل">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => requestDelete("update", updateItem.id, safeStr(updateItem.content))}
-                          className="p-2 rounded-xl text-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title="حذف">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* ══ VIDEOS ════════════════════════ */}
-            {activeTab === "videos" && (
-              <div className="space-y-2.5">
-                {filteredVideos.length === 0 ? (
-                  <div className="bg-card border border-border rounded-2xl py-16 text-center">
-                    <Youtube className="w-10 h-10 text-foreground/15 mx-auto mb-3" />
-                    <p className="text-sm text-foreground/40">{searchQuery ? "لا نتائج." : "لا توجد مرئيات."}</p>
-                    {!searchQuery && (
-                      <Button onClick={openCreateVideoModal} size="sm" className="mt-4 rounded-xl bg-red-600 hover:bg-red-700 text-white">
-                        <Plus className="w-3.5 h-3.5 ml-1.5" /> إضافة فيديو
-                      </Button>
-                    )}
-                  </div>
-                ) : filteredVideos.map(video => {
-                  const vid = extractYouTubeId(safeStr(video.youtube_url, ""));
-                  return (
-                    <div key={video.id}
-                      className="bg-card border border-border rounded-2xl flex items-center gap-4 p-4 hover:border-red-200 dark:hover:border-red-900/30 hover:shadow-sm transition-all">
-                      {vid ? (
-                        <img src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`} alt={safeStr(video.title)}
-                          className="w-20 h-12 object-cover rounded-xl border border-border shrink-0" />
-                      ) : (
-                        <div className="w-20 h-12 bg-muted rounded-xl border border-border flex items-center justify-center shrink-0">
-                          <Video className="w-5 h-5 text-foreground/20" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{safeStr(video.title)}</p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200 dark:border-red-900/30">
-                            {getVideoCategoryLabel(video.category)}
-                          </span>
-                          {video.sub_category && (
-                            <span className="text-[9px] text-foreground/40">{safeStr(video.sub_category)}</span>
+                <div className="divide-y divide-border border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+                  {siteUpdates.map(up => {
+                    const isVisible = up.is_visible !== false;
+                    return (
+                      <div key={up.id} className={`p-4 flex items-center justify-between gap-4 ${!isVisible ? "opacity-50" : ""}`}>
+                        <div className="space-y-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground leading-relaxed">{up.content}</p>
+                          {up.link && (
+                            <p className="text-[10px] font-mono text-primary flex items-center gap-1">
+                              <Link2 className="w-3 h-3" /> {up.link}
+                            </p>
                           )}
-                          <span className="text-[9px] text-foreground/25 font-mono">#{video.display_order ?? 0}</span>
                         </div>
-                        {video.youtube_url && (
-                          <a href={safeStr(video.youtube_url)} target="_blank" rel="noreferrer"
-                            className="text-[9px] text-foreground/25 hover:text-red-500 transition-colors font-mono truncate block mt-0.5">
-                            {safeStr(video.youtube_url)}
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <VisibilityToggle
+                            checked={isVisible}
+                            onCheckedChange={() => handleToggleUpdateVisibility(up)}
+                          />
+                          <button
+                            onClick={() => openEditUpdateModal(up)}
+                            className="p-1.5 rounded-lg text-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="تعديل"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => requestDelete("update", up.id, up.content)}
+                            className="p-1.5 rounded-lg text-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button onClick={() => openEditVideoModal(video)}
-                          className="p-2 rounded-xl text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => requestDelete("video", video.id, safeStr(video.title))}
-                          className="p-2 rounded-xl text-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* ══ MESSAGES ══════════════════════ */}
-            {activeTab === "messages" && (
-              <div className="space-y-2.5">
-                {filteredMessages.length === 0 ? (
-                  <div className="bg-card border border-border rounded-2xl py-16 text-center">
-                    <Mail className="w-10 h-10 text-foreground/15 mx-auto mb-3" />
-                    <p className="text-sm text-foreground/40">{searchQuery ? "لا نتائج." : "لا توجد رسائل."}</p>
-                  </div>
-                ) : filteredMessages.map(msg => (
-                  <div key={msg.id}
-                    onClick={() => { setSelectedMessage(msg); setMessageModalOpen(true); }}
-                    className="bg-card border border-border rounded-2xl p-4 hover:border-primary/20 hover:shadow-sm transition-all cursor-pointer">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-sm font-semibold text-foreground">{safeStr(msg.name)}</span>
-                          <span className="text-[10px] text-foreground/30 font-mono" style={{ direction: "ltr" }}>
-                            {safeStr(msg.email, "")}
-                          </span>
+            {/* ══ VIDEOS TAB ════════════════════ */}
+            {activeTab === "videos" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {videos.length === 0 ? (
+                    <div className="col-span-full py-16 text-center text-foreground/40 bg-card border border-border rounded-2xl">
+                      لا توجد مقاطع فيديو مضافة بعد.
+                    </div>
+                  ) : videos.map(vid => {
+                    const vidId = extractYouTubeId(vid.youtube_url ?? "");
+                    return (
+                      <div key={vid.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+                        <div>
+                          {vidId ? (
+                            <div className="relative aspect-video bg-black">
+                              <img
+                                src={`https://img.youtube.com/vi/${vidId}/mqdefault.jpg`}
+                                alt={safeStr(vid.title)}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="aspect-video bg-muted flex items-center justify-center text-foreground/40 text-xs">
+                              بدون معاينة
+                            </div>
+                          )}
+                          <div className="p-4 space-y-2">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
+                              {getVideoCategoryLabel(vid.category)}
+                            </span>
+                            <h3 className="text-xs font-bold text-foreground leading-snug">{safeStr(vid.title)}</h3>
+                            {vid.description && <p className="text-[11px] text-foreground/50 line-clamp-2">{vid.description}</p>}
+                          </div>
                         </div>
-                        <p className="text-xs font-medium text-primary">{safeStr(msg.subject)}</p>
-                        <p className="text-[11px] text-foreground/40 mt-1 truncate">{safeStr(msg.message)}</p>
+                        <div className="p-4 border-t border-border flex items-center justify-end gap-2 bg-muted/20">
+                          <button
+                            onClick={() => openEditVideoModal(vid)}
+                            className="p-1.5 rounded-lg text-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="تعديل"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => requestDelete("video", vid.id, safeStr(vid.title))}
+                            className="p-1.5 rounded-lg text-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="shrink-0 flex flex-col items-end gap-2">
-                        <span className="text-[9px] text-foreground/25 whitespace-nowrap">{safeDate(msg.created_at)}</span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ══ MESSAGES TAB ══════════════════ */}
+            {activeTab === "messages" && (
+              <div className="space-y-4">
+                {messages.length === 0 ? (
+                  <div className="py-16 text-center text-foreground/40 bg-card border border-border rounded-2xl">
+                    لا توجد رسائل واردة بعد.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {messages.map(msg => (
+                      <div
+                        key={msg.id}
+                        onClick={() => { setSelectedMessage(msg); setMessageModalOpen(true); }}
+                        className="bg-card border border-border rounded-2xl p-4 cursor-pointer hover:border-primary/40 hover:shadow-md transition-all flex items-center justify-between gap-4"
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-foreground">{safeStr(msg.name)}</span>
+                            <span className="text-[10px] text-foreground/40">({safeDate(msg.created_at)})</span>
+                          </div>
+                          <p className="text-xs font-semibold text-primary truncate">{safeStr(msg.subject)}</p>
+                          <p className="text-[11px] text-foreground/50 truncate max-w-lg">{safeStr(msg.message)}</p>
+                        </div>
                         <button
                           onClick={e => { e.stopPropagation(); requestDelete("message", msg.id, safeStr(msg.subject)); }}
-                          className="p-1.5 rounded-lg text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
+                          className="p-2 rounded-xl text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -1313,6 +1714,79 @@ export default function AdminDashboard() {
       {/* ══════════════════════════════════════
           MODALS
       ══════════════════════════════════════ */}
+
+      {/* Folder Modal */}
+      <Dialog open={folderModalOpen} onOpenChange={setFolderModalOpen}>
+        <DialogContent className="bg-background border-border text-right max-w-md rounded-[1.5rem] shadow-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground">
+              {editingFolder ? "تعديل المجلد" : "إنشاء مجلد جديد"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-foreground/40">
+              المجلدات تُنظّم المكتبة الصوتية إلى مجلدات للألبومات أو مجلدات للقصائد.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveFolder} className="space-y-4 mt-1">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">اسم المجلد *</label>
+              <Input
+                value={folderName}
+                onChange={e => setFolderName(e.target.value)}
+                disabled={actionLoading}
+                placeholder="مثال: إصدارات محرم الحرام"
+                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الفئة *</label>
+                <Select value={folderCategory} onValueChange={setFolderCategory} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sorrow">الأحزان (عزاء)</SelectItem>
+                    <SelectItem value="joy">الأفراح والمواليد</SelectItem>
+                    <SelectItem value="supplications">الأدعية والمناجاة</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">نوع المجلد *</label>
+                <Select value={folderType} onValueChange={(val: any) => setFolderType(val)} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="albums_only">مجلد ألبومات فقط</SelectItem>
+                    <SelectItem value="qasaed_only">مجلد قصائد فقط</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">ترتيب العرض</label>
+              <Input
+                type="number" min="0"
+                value={folderOrder}
+                onChange={e => setFolderOrder(e.target.value)}
+                disabled={actionLoading}
+                className="h-11 text-sm text-center font-mono bg-muted/30 border-border rounded-xl"
+                style={{ direction: "ltr" }}
+              />
+            </div>
+            <DialogFooter className="flex gap-2 pt-1">
+              <Button type="submit" disabled={actionLoading} className="h-10 px-6 text-xs font-bold rounded-xl">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ المجلد"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setFolderModalOpen(false)}
+                disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Album modal */}
       <Dialog open={albumModalOpen} onOpenChange={setAlbumModalOpen}>
@@ -1352,6 +1826,22 @@ export default function AdminDashboard() {
                 </Select>
               </div>
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">المجلد المستهدف (اختياري - مجلدات الألبومات فقط)</label>
+              <Select value={albumFolderIdField} onValueChange={setAlbumFolderIdField} disabled={actionLoading}>
+                <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                  <SelectValue placeholder="بدون مجلد (مستقل)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون مجلد (مستقل)</SelectItem>
+                  {folders
+                    .filter(f => f.folder_type === "albums_only" && f.category === albumCategory)
+                    .map(f => (
+                      <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
             <DialogFooter className="flex gap-2 pt-1">
               <Button type="submit" disabled={actionLoading}
                 className="h-10 px-6 text-xs font-bold rounded-xl">
@@ -1366,7 +1856,7 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Add poems modal (multi-entry) */}
+      {/* Add poems modal */}
       <Dialog open={poemModalOpen} onOpenChange={setPoemModalOpen}>
         <DialogContent
           className="bg-background border-border text-right max-w-2xl rounded-[1.5rem] shadow-2xl flex flex-col"
@@ -1377,11 +1867,8 @@ export default function AdminDashboard() {
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <Music className="w-4 h-4 text-primary" />
               إضافة قصائد
-              {poemModalAlbum && (
-                <span className="text-sm font-normal text-foreground/40">
-                  — {safeStr(poemModalAlbum.title)}
-                </span>
-              )}
+              {poemModalAlbum && <span> للألبوم "{poemModalAlbum.title}"</span>}
+              {poemModalFolder && <span> للمجلد "{poemModalFolder.name}"</span>}
             </DialogTitle>
             <DialogDescription className="text-xs text-foreground/40">
               أدخل بيانات كل قصيدة. اضغط على الزر أدناه لإضافة المزيد دفعةً واحدة.
@@ -1393,7 +1880,6 @@ export default function AdminDashboard() {
             <div className="overflow-y-auto space-y-3 flex-1" style={{ maxHeight: "50vh" }}>
               {poemEntries.map((entry, idx) => (
                 <div key={idx} className="bg-muted/30 border border-border rounded-2xl p-4 space-y-3">
-                  {/* Entry header */}
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold text-primary/60 uppercase tracking-widest">
                       القصيدة {idx + 1}
@@ -1406,20 +1892,19 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  {/* Three fields: title | url | order */}
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_5rem] gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_4.5rem_4rem] gap-2.5">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">العنوان</label>
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">العنوان *</label>
                       <Input
                         value={entry.title}
                         onChange={e => updatePoemEntry(idx, "title", e.target.value)}
                         disabled={actionLoading}
-                        placeholder="عنوان القصيدة (اختياري)"
+                        placeholder="عنوان القصيدة"
                         className="h-9 text-xs text-right bg-background border-border rounded-xl"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">رابط الملف الصوتي *</label>
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">رابط الصوت *</label>
                       <Input
                         type="url"
                         value={entry.url}
@@ -1431,7 +1916,18 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">رقم المقطع</label>
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">المدة</label>
+                      <Input
+                        value={entry.duration}
+                        onChange={e => updatePoemEntry(idx, "duration", e.target.value)}
+                        disabled={actionLoading}
+                        placeholder="05:30"
+                        className="h-9 text-xs text-center font-mono bg-background border-border rounded-xl"
+                        style={{ direction: "ltr" }}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">الترتيب</label>
                       <Input
                         type="number" min="0"
                         value={entry.order}
@@ -1439,6 +1935,30 @@ export default function AdminDashboard() {
                         disabled={actionLoading}
                         className="h-9 text-xs text-center font-mono bg-background border-border rounded-xl"
                         style={{ direction: "ltr" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">سنة الإصدار (اختياري)</label>
+                      <Input
+                        type="number"
+                        placeholder="2026"
+                        value={entry.release_year}
+                        onChange={e => updatePoemEntry(idx, "release_year", e.target.value)}
+                        disabled={actionLoading}
+                        className="h-9 text-xs text-right font-mono bg-background border-border rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider">الوصف (اختياري)</label>
+                      <Input
+                        placeholder="وصف مختصر للقصيدة..."
+                        value={entry.description}
+                        onChange={e => updatePoemEntry(idx, "description", e.target.value)}
+                        disabled={actionLoading}
+                        className="h-9 text-xs text-right bg-background border-border rounded-xl"
                       />
                     </div>
                   </div>
@@ -1492,18 +2012,45 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الألبوم</label>
-                <Select value={editAudioAlbumId} onValueChange={setEditAudioAlbumId} disabled={actionLoading}>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الألبوم المستهدف</label>
+                <Select
+                  value={editAudioAlbumId}
+                  onValueChange={setEditAudioAlbumId}
+                  disabled={actionLoading}
+                >
                   <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
-                    <SelectValue placeholder="اختر ألبوماً…" />
+                    <SelectValue placeholder="بدون ألبوم" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">بدون ألبوم</SelectItem>
                     {albums.map(a => (
-                      <SelectItem key={a.id} value={String(a.id)}>{safeStr(a.title)}</SelectItem>
+                      <SelectItem key={String(a.id)} value={String(a.id)}>{safeStr(a.title)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">مجلد القصائد</label>
+                <Select
+                  value={editAudioFolderId}
+                  onValueChange={setEditAudioFolderId}
+                  disabled={actionLoading}
+                >
+                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                    <SelectValue placeholder="بدون مجلد" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون مجلد</SelectItem>
+                    {folders
+                      .filter(f => f.folder_type === "qasaed_only")
+                      .map(f => (
+                        <SelectItem key={String(f.id)} value={String(f.id)}>{safeStr(f.name)}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رقم المقطع</label>
                 <Input type="number" min="0" value={editAudioOrder} onChange={e => setEditAudioOrder(e.target.value)}
@@ -1511,13 +2058,25 @@ export default function AdminDashboard() {
                   className="h-11 text-sm text-center font-mono bg-muted/30 border-border rounded-xl"
                   style={{ direction: "ltr" }} />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">المدة (مم:ثث)</label>
+                <Input placeholder="07:15" value={editAudioDuration} onChange={e => setEditAudioDuration(e.target.value)}
+                  disabled={actionLoading}
+                  className="h-11 text-sm text-left font-mono bg-muted/30 border-border rounded-xl"
+                  style={{ direction: "ltr" }} />
+              </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">المدة (مم:ثث)</label>
-              <Input placeholder="07:15" value={editAudioDuration} onChange={e => setEditAudioDuration(e.target.value)}
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">سنة الإصدار (اختياري)</label>
+              <Input type="number" placeholder="2026" value={editAudioReleaseYear} onChange={e => setEditAudioReleaseYear(e.target.value)}
                 disabled={actionLoading}
-                className="h-11 text-sm text-left font-mono bg-muted/30 border-border rounded-xl"
-                style={{ direction: "ltr" }} />
+                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الوصف (اختياري)</label>
+              <Textarea placeholder="وصف مختصر للقصيدة..." value={editAudioDescription} onChange={e => setEditAudioDescription(e.target.value)}
+                disabled={actionLoading}
+                className="text-sm text-right bg-muted/30 border-border rounded-xl resize-none min-h-[70px]" />
             </div>
             <DialogFooter className="flex gap-2 pt-1">
               <Button type="submit" disabled={actionLoading}
