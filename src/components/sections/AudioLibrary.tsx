@@ -1757,7 +1757,7 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Container for Grid View Tracklist - Anchored Below Category Navigation, Bounded Above Navigation Bar (z-[90] below Nav z-[110]) */}
+      {/* Modern Glassmorphic Container & Full-Screen Blurred Backdrop for Grid View Tracklist */}
       <AnimatePresence mode="wait">
         {viewMode === "grid" && selectedAlbumForGrid && (() => {
           const modalListens = selectedAlbumForGrid.tracks
@@ -1782,28 +1782,41 @@ function AlbumGrid({
           }
 
           return (
-            <motion.div
-              key="grid-album-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className={cn(
-                "fixed inset-x-0 z-[90] flex items-start justify-center px-3 sm:px-4 pointer-events-none transition-all duration-500 ease-in-out overscroll-contain",
-                topOffsetClass,
-                bottomOffsetClass
-              )}
-              dir="rtl"
-            >
+            <React.Fragment key={`grid-album-portal-${selectedAlbumForGrid.id}`}>
+              {/* 1. Full Screen Viewport Backdrop Overlay (z-40) */}
               <motion.div
-                key={`grid-album-modal-${selectedAlbumForGrid.id}`}
-                initial={{ scale: 0.96, opacity: 0, y: -16 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.96, opacity: 0, y: -16 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-full max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain"
-                onClick={(e) => e.stopPropagation()}
+                key="grid-album-full-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 w-screen h-screen z-40 bg-black/60 backdrop-blur-md cursor-pointer"
+                onClick={() => setExpandedAlbumId(null)}
+              />
+
+              {/* 2. Expanded Album Card Wrapper (z-50) */}
+              <motion.div
+                key="grid-album-card-wrapper"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className={cn(
+                  "fixed inset-x-0 z-50 flex items-start justify-center px-3 sm:px-4 pointer-events-none transition-all duration-500 ease-in-out overscroll-contain",
+                  topOffsetClass,
+                  bottomOffsetClass
+                )}
+                dir="rtl"
               >
+                <motion.div
+                  key={`grid-album-modal-${selectedAlbumForGrid.id}`}
+                  initial={{ scale: 0.96, opacity: 0, y: -16 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.96, opacity: 0, y: -16 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-full max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain cursor-default"
+                  onClick={(e) => e.stopPropagation()}
+                >
                 {/* Modal Background Glow */}
                 <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -1925,9 +1938,10 @@ function AlbumGrid({
                 </div>
               </motion.div>
             </motion.div>
-          );
-        })()}
-      </AnimatePresence>
+          </React.Fragment>
+        );
+      })()}
+    </AnimatePresence>
     </>
   );
 }
