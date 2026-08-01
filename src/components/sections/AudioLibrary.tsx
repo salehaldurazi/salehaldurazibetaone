@@ -1179,57 +1179,62 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                       </div>
                                     </div>
 
-                                    {/* Middle Section: Track Title */}
-                                    <div className="my-auto relative z-10 text-start w-full" dir="rtl">
-                                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-3">
+                                    {/* Center Section: Track Title & Description */}
+                                    <div className="my-auto relative z-10 text-right w-full px-1" dir="rtl">
+                                      <h3 className="text-[11px] sm:text-xs font-bold text-foreground text-right truncate w-full leading-snug">
                                         {track.title}
                                       </h3>
+                                      {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
+                                        <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-medium text-right truncate w-full mt-0.5">
+                                          {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
+                                        </p>
+                                      )}
                                     </div>
 
-                                    {/* Bottom Section: Compact Inline Stats Container & Sleek Left Arrow Action Button */}
+                                    {/* Bottom Section: Compact Inline Stats Container & Premium Left Arrow Action Button */}
                                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-1.5 text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 backdrop-blur-sm w-auto shrink-0">
                                         <div className="flex items-center gap-0.5">
-                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
-                                          <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
+                                          <Headphones className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-primary shrink-0 opacity-80" />
+                                          <span className="font-bold">{(track.listens_count || 0).toLocaleString("en-US")}</span>
                                         </div>
                                         <div className="w-px h-2 bg-foreground/15 mx-0.5" />
                                         <div className="flex items-center gap-0.5">
-                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
-                                          <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
+                                          <Download className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-primary shrink-0 opacity-80" />
+                                          <span className="font-bold">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
                                         </div>
                                       </div>
 
-                                      {/* Left Arrow Icon Button & Portal Dropdown Menu (Zero Clipping) */}
+                                      {/* Premium Left Arrow Action Button & Portal Dropdown Menu */}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                           <button
-                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                                            className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center transition-all duration-300 shadow-sm hover:scale-105 active:scale-95 cursor-pointer shrink-0 group/btn"
                                             title="خيارات"
                                           >
-                                            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                                            <ChevronLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
                                           </button>
                                         </DropdownMenuTrigger>
 
                                         <DropdownMenuContent
-                                          align="start"
+                                          align="end"
                                           sideOffset={6}
-                                          className="bg-[#1a1a1a] border border-primary/20 text-right min-w-[120px] rounded-xl p-1 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in zoom-in-95 duration-200"
+                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[110px] rounded-xl p-1 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
                                         >
                                           <DropdownMenuItem
                                             onClick={() => handleAction("download", track)}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                            className="flex items-center gap-2 w-full px-2.5 py-1 text-[10px] font-semibold text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer justify-end text-right"
                                           >
-                                            <Download className="w-3.5 h-3.5 text-primary shrink-0" />
                                             <span>تحميل</span>
+                                            <Download className="w-3.5 h-3.5 text-primary shrink-0" />
                                           </DropdownMenuItem>
 
                                           <DropdownMenuItem
                                             onClick={() => handleAction("share", track)}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                            className="flex items-center gap-2 w-full px-2.5 py-1 text-[10px] font-semibold text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer justify-end text-right"
                                           >
-                                            <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
                                             <span>مشاركة</span>
+                                            <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
                                           </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
