@@ -239,6 +239,40 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [currentFolderView, setCurrentFolderView] = useState<AudioFolder | null>(null);
   const [highlightedTrackId, setHighlightedTrackId] = useState<string | number | null>(null);
   const [highlightedAlbumId, setHighlightedAlbumId] = useState<string | number | null>(null);
+  const [playerState, setPlayerState] = useState<{ isActive: boolean; isMinimized: boolean }>(() => {
+    if (typeof window !== "undefined" && (window as any).__playerState) {
+      return (window as any).__playerState;
+    }
+    return { isActive: false, isMinimized: false };
+  });
+
+  useEffect(() => {
+    const handlePlayerStateChange = (e: Event) => {
+      const customEvt = e as CustomEvent<{ isActive: boolean; isMinimized: boolean }>;
+      if (customEvt.detail) {
+        setPlayerState(customEvt.detail);
+      }
+    };
+
+    if (typeof window !== "undefined" && (window as any).__playerState) {
+      setPlayerState((window as any).__playerState);
+    }
+
+    window.addEventListener("player-state-change", handlePlayerStateChange);
+    return () => {
+      window.removeEventListener("player-state-change", handlePlayerStateChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && expandedAlbumId !== null) {
+        setExpandedAlbumId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [expandedAlbumId]);
 
   // Reset visibleCount when activeCategory or searchQuery changes
   useEffect(() => {
@@ -1362,6 +1396,31 @@ function AlbumGrid({
   highlightedTrackId?: string | number | null,
   highlightedAlbumId?: string | number | null
 }) {
+  const [playerState, setPlayerState] = useState<{ isActive: boolean; isMinimized: boolean }>(() => {
+    if (typeof window !== "undefined" && (window as any).__playerState) {
+      return (window as any).__playerState;
+    }
+    return { isActive: false, isMinimized: false };
+  });
+
+  useEffect(() => {
+    const handlePlayerStateChange = (e: Event) => {
+      const customEvt = e as CustomEvent<{ isActive: boolean; isMinimized: boolean }>;
+      if (customEvt.detail) {
+        setPlayerState(customEvt.detail);
+      }
+    };
+
+    if (typeof window !== "undefined" && (window as any).__playerState) {
+      setPlayerState((window as any).__playerState);
+    }
+
+    window.addEventListener("player-state-change", handlePlayerStateChange);
+    return () => {
+      window.removeEventListener("player-state-change", handlePlayerStateChange);
+    };
+  }, []);
+
   if (albums.length === 0) {
     return (
       <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
@@ -1427,7 +1486,7 @@ function AlbumGrid({
           "grid transition-all duration-500",
           viewMode === "grid"
             ? "grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
-            : "grid-cols-1 gap-6 max-w-5xl mx-auto"
+            : "grid-cols-1 gap-3 max-w-5xl mx-auto"
         )}
       >
         <AnimatePresence mode="popLayout">
@@ -1687,7 +1746,7 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Player Clearance */}
+      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Dynamic Player Clearance */}
       <AnimatePresence>
         {viewMode === "grid" && selectedAlbumForGrid && (() => {
           const modalListens = selectedAlbumForGrid.tracks
@@ -1697,28 +1756,52 @@ function AlbumGrid({
             ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.downloads_count || 0), 0)
             : 0;
 
+          // Dynamic player clearance padding and responsive max heights
+          let bottomPaddingClass = "pb-4 sm:pb-6";
+          let modalMaxHeightClass = "max-h-[82vh]";
+          let tracklistMaxHeightClass = "max-h-[60vh]";
+
+          if (playerState.isActive) {
+            if (playerState.isMinimized) {
+              bottomPaddingClass = "pb-[10.5rem] sm:pb-[11.5rem]";
+              modalMaxHeightClass = "max-h-[66vh]";
+              tracklistMaxHeightClass = "max-h-[46vh]";
+            } else {
+              bottomPaddingClass = "pb-[14.5rem] sm:pb-[15.5rem]";
+              modalMaxHeightClass = "max-h-[54vh]";
+              tracklistMaxHeightClass = "max-h-[36vh]";
+            }
+          }
+
           return (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+              transition={{ duration: 0.25 }}
+              className={cn(
+                "fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-all duration-500 ease-in-out",
+                bottomPaddingClass
+              )}
               onClick={() => setExpandedAlbumId(null)}
               dir="rtl"
             >
               <motion.div
-                initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                initial={{ scale: 0.93, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.92, opacity: 0, y: 20 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2.2rem] p-6 shadow-2xl overflow-hidden max-h-[75vh] flex flex-col text-start"
+                exit={{ scale: 0.93, opacity: 0, y: 20 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className={cn(
+                  "relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2.2rem] p-5 sm:p-6 shadow-2xl overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out",
+                  modalMaxHeightClass
+                )}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Background Glow */}
                 <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Modal Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-primary/10">
+                <div className="flex items-center justify-between pb-4 border-b border-primary/10 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <button
                       onClick={() =>
@@ -1727,13 +1810,13 @@ function AlbumGrid({
                           albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
                         )
                       }
-                      className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0"
+                      className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0 group/playbtn"
                       title="تشغيل الألبوم كاملاً"
                     >
-                      <Play className="w-4 h-4 fill-current translate-x-[-1px]" />
+                      <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/playbtn:scale-110 transition-transform duration-300" />
                     </button>
                     <div className="text-start min-w-0">
-                      <h3 className="text-lg font-bold text-foreground truncate">
+                      <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
                         {selectedAlbumForGrid.title}
                       </h3>
                       {/* Sleek RTL flex row for Year, Status Label & Stats */}
@@ -1769,12 +1852,22 @@ function AlbumGrid({
                 </div>
 
                 {/* Premium Custom Scrollbar Tracklist with Clearance */}
-                <div className="py-4 space-y-2 overflow-y-auto flex-1 pe-1.5 ps-1 max-h-[55vh] [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent]">
+                <div
+                  className={cn(
+                    "py-3 space-y-2 overflow-y-auto flex-1 pe-1.5 ps-1 transition-all duration-500 ease-in-out [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent] overscroll-contain",
+                    tracklistMaxHeightClass
+                  )}
+                >
                   {selectedAlbumForGrid.tracks &&
                     selectedAlbumForGrid.tracks.map((track: any, trackIdx: number) => (
                       <div
                         key={track.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-3"
+                        id={`track-${track.id}`}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-3 group/item",
+                          highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                            "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse shadow-[0_0_20px_rgba(197,160,89,0.4)]"
+                        )}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <Button
@@ -1791,7 +1884,7 @@ function AlbumGrid({
                           </div>
 
                           <div className="min-w-0 flex-1 text-start">
-                            <span className="text-xs md:text-sm font-medium block truncate text-foreground">
+                            <span className="text-xs md:text-sm font-medium block truncate text-foreground group-hover/item:text-primary transition-colors">
                               {track.title}
                             </span>
                             {track.duration && (
