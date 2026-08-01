@@ -1174,7 +1174,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                           </span>
                                         )}
                                         {track.duration && (
-                                          <span className="inline-flex items-center text-[9px] sm:text-[10px] text-foreground/70 font-mono bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[9px] sm:text-[10px] text-foreground/70 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
                                             {track.duration}
                                           </span>
                                         )}
@@ -1253,8 +1253,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                               )} dir="rtl">
                                 <CardContent className="p-0" dir="rtl">
                                   {/* Golden header — exact same structure as album card header */}
-                                  <div className="p-4 sm:p-5 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-4 flex-wrap md:flex-nowrap" dir="rtl">
-                                    <div className="flex items-center gap-3 sm:gap-4 text-start">
+                                  <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-2 sm:gap-4 flex-nowrap" dir="rtl">
+                                    <div className="flex items-center gap-3 sm:gap-4 text-start min-w-0">
                                       <button
                                         onClick={() => {
                                           incrementTrackStat(track.id, "listens");
@@ -1281,7 +1281,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </h3>
                                         <div className="flex items-center gap-2 justify-start">
                                           {track.duration && (
-                                            <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 font-mono">
+                                            <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400">
                                               {track.duration}
                                             </p>
                                           )}
@@ -1290,40 +1290,42 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                     </div>
 
                                     {/* Track stats and actions */}
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-3 py-1.5 rounded-2xl backdrop-blur-sm">
+                                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                      <div className="flex items-center gap-1.5 sm:gap-2.5 text-[8px] sm:text-[9px] text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl backdrop-blur-sm shrink-0">
                                         <div className="flex items-center gap-1">
-                                          <Headphones className="w-3 h-3 text-primary opacity-80" />
+                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
                                           <span className="font-normal text-foreground/40 dark:text-gray-400">
                                             {(track.listens_count || 0).toLocaleString("en-US")}
                                           </span>
                                         </div>
-                                        <div className="w-px h-3 bg-foreground/15" />
+                                        <div className="w-px h-2.5 bg-foreground/15" />
                                         <div className="flex items-center gap-1">
-                                          <Download className="w-3 h-3 text-primary opacity-80" />
+                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
                                           <span className="font-normal text-foreground/40 dark:text-gray-400">
                                             {(track.downloads_count || 0).toLocaleString("en-US")}
                                           </span>
                                         </div>
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleAction("download", track)}
-                                        className="w-8 h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                                        title="تنزيل"
-                                      >
-                                        <Download className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleAction("share", track)}
-                                        className="w-8 h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                                        title="مشاركة"
-                                      >
-                                        <Share2 className="w-3.5 h-3.5" />
-                                      </Button>
+                                      <div className="ms-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("download", track)}
+                                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="تنزيل"
+                                        >
+                                          <Download className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAction("share", track)}
+                                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                          title="مشاركة"
+                                        >
+                                          <Share2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -2039,7 +2041,7 @@ function AlbumGrid({
                                 {track.title}
                               </span>
                               {track.duration && (
-                                <span className="text-[9px] sm:text-[10px] text-foreground/40 font-mono block truncate">
+                                <span className="text-[9px] sm:text-[10px] text-foreground/40 block truncate">
                                   {track.duration}
                                 </span>
                               )}
