@@ -1200,69 +1200,39 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
 
-                                      {/* Left Arrow Icon Button & Popover Menu */}
-                                      <div className="relative shrink-0">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveTrackMenuId(activeTrackMenuId === track.id ? null : track.id);
-                                          }}
-                                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
-                                          title="خيارات"
-                                        >
-                                          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
-                                        </button>
+                                      {/* Left Arrow Icon Button & Portal Dropdown Menu (Zero Clipping) */}
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <button
+                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                                            title="خيارات"
+                                          >
+                                            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                                          </button>
+                                        </DropdownMenuTrigger>
 
-                                        {activeTrackMenuId === track.id && (
-                                          <>
-                                            <div
-                                              className="fixed inset-0 z-20"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveTrackMenuId(null);
-                                              }}
-                                            />
-                                            <div
-                                              className="absolute bottom-9 left-0 z-30 min-w-[120px] rounded-xl bg-[#1a1a1a] border border-primary/20 p-1 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 text-start"
-                                              dir="rtl"
-                                            >
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setActiveTrackMenuId(null);
-                                                  incrementTrackStat(track.id, "listens");
-                                                  const mappedTrack = {
-                                                    ...track,
-                                                    audioUrl: track.audio_url,
-                                                    album: currentFolderView.name
-                                                  };
-                                                  const mappedPlaylist = folderTracks.map(t => ({
-                                                    ...t,
-                                                    audioUrl: t.audio_url,
-                                                    album: currentFolderView.name
-                                                  }));
-                                                  onPlay(mappedTrack, mappedPlaylist);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
-                                              >
-                                                <Headphones className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                <span>استماع</span>
-                                              </button>
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setActiveTrackMenuId(null);
-                                                  handleAction("download", track);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
-                                              >
-                                                <Download className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                <span>تحميل</span>
-                                              </button>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
+                                        <DropdownMenuContent
+                                          align="start"
+                                          sideOffset={6}
+                                          className="bg-[#1a1a1a] border border-primary/20 text-right min-w-[120px] rounded-xl p-1 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in zoom-in-95 duration-200"
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={() => handleAction("download", track)}
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                                            <span>تحميل</span>
+                                          </DropdownMenuItem>
+
+                                          <DropdownMenuItem
+                                            onClick={() => handleAction("share", track)}
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                                            <span>مشاركة</span>
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
                                   </Card>
                                 </motion.div>
