@@ -237,11 +237,15 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [sharedAlbumId, setSharedAlbumId] = useState<string | number | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [currentFolderView, setCurrentFolderView] = useState<AudioFolder | null>(null);
+  const [highlightedTrackId, setHighlightedTrackId] = useState<string | number | null>(null);
+  const [highlightedAlbumId, setHighlightedAlbumId] = useState<string | number | null>(null);
 
   // Reset visibleCount when activeCategory or searchQuery changes
   useEffect(() => {
     setVisibleCount(5);
-    setCurrentFolderView(null);
+    if (currentFolderView && currentFolderView.category !== activeCategory) {
+      setCurrentFolderView(null);
+    }
   }, [activeCategory, searchQuery]);
 
   // معالجة مشاركة المقاطع الصوتية عند فتح رابط يحتوي على معرف المقطع
@@ -314,7 +318,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     }
   }, [loading, liveAlbums, onPlay]);
 
-  // الاستماع لحدث "الانتقال إلى الألبوم" لتحديد القسم وفتح قائمة القصائد والتمرير إليها
+  // الاستماع لحدث "الانتقال إلى الألبوم/القصيدة" لتحديد القسم والمجلد وفتح قائمة القصائد والتمرير إليها
   useEffect(() => {
     const handleGoToAlbum = (e: Event) => {
       const customEvt = e as CustomEvent;
@@ -323,13 +327,15 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       const albumTitle = detail?.albumTitle || track?.album;
       const albumId = detail?.albumId || track?.album_id;
 
-      if (!albumTitle && !albumId) return;
+      if (!track && !albumTitle && !albumId) return;
 
       const albumsList = liveAlbums.length > 0 ? liveAlbums : FALLBACK_ALBUMS;
 
+      // 1. البحث عن الألبوم التابع له المقطع الصوتي
       let foundAlbum = albumsList.find(
         (a) =>
           (albumId && String(a.id) === String(albumId)) ||
+          (track?.id && a.tracks?.some((t) => String(t.id) === String(track.id))) ||
           (albumTitle && normalizeArabic(a.title) === normalizeArabic(String(albumTitle)))
       );
 
@@ -341,32 +347,105 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
         );
       }
 
+      // إظهار كافة الألبومات لمنع حجب العناصر بالطي
+      setVisibleCount(albumsList.length + 100);
+
       if (foundAlbum) {
-        if (foundAlbum.category) {
-          setActiveCategory(foundAlbum.category);
+        // إذا كان الألبوم ينتمي لمجلد معين، ننتقل إلى ذلك المجلد
+        let parentFolder: AudioFolder | undefined;
+        if (foundAlbum.folder_id != null) {
+          parentFolder = liveFolders.find((f) => String(f.id) === String(foundAlbum.folder_id));
         }
+
+        if (parentFolder) {
+          if (parentFolder.category) {
+            setActiveCategory(parentFolder.category);
+          }
+          setCurrentFolderView(parentFolder);
+        } else {
+          if (foundAlbum.category) {
+            setActiveCategory(foundAlbum.category);
+          }
+          setCurrentFolderView(null);
+        }
+
         setSharedAlbumId(foundAlbum.id);
         setExpandedAlbumId(foundAlbum.id);
 
+        if (track?.id) {
+          setHighlightedTrackId(track.id);
+        }
+        setHighlightedAlbumId(foundAlbum.id);
+
         setTimeout(() => {
-          const el = document.getElementById(`album-${foundAlbum.id}`);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          const trackEl = track?.id ? document.getElementById(`track-${track.id}`) : null;
+          if (trackEl) {
+            trackEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            const albumEl = document.getElementById(`album-${foundAlbum.id}`);
+            if (albumEl) {
+              albumEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else {
+              const audioSection = document.getElementById("audio");
+              if (audioSection) {
+                audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }
+          }
+        }, 350);
+      } else {
+        // 2. إذا لم يكن ضمن ألبوم، نتحقق مما إذا كان قصيدة مستقلة/مرتبطة بمجلد
+        let targetFolderId = track?.folder_id;
+        if (!targetFolderId && track?.id) {
+          const standalone = standaloneQasaed.find((t) => String(t.id) === String(track.id));
+          if (standalone) {
+            targetFolderId = standalone.folder_id;
+          }
+        }
+
+        let parentFolder: AudioFolder | undefined;
+        if (targetFolderId != null) {
+          parentFolder = liveFolders.find((f) => String(f.id) === String(targetFolderId));
+        }
+
+        if (parentFolder) {
+          if (parentFolder.category) {
+            setActiveCategory(parentFolder.category);
+          }
+          setCurrentFolderView(parentFolder);
+        } else {
+          setCurrentFolderView(null);
+        }
+
+        if (track?.id) {
+          setHighlightedTrackId(track.id);
+        }
+
+        setTimeout(() => {
+          const trackEl = track?.id ? document.getElementById(`track-${track.id}`) : null;
+          if (trackEl) {
+            trackEl.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             const audioSection = document.getElementById("audio");
             if (audioSection) {
               audioSection.scrollIntoView({ behavior: "smooth", block: "start" });
             }
           }
-        }, 300);
+        }, 350);
       }
+
+      // إزالة التبريز البصري بعد 3 ثوانٍ
+      setTimeout(() => {
+        setHighlightedTrackId(null);
+        setHighlightedAlbumId(null);
+      }, 3000);
     };
 
     window.addEventListener("go-to-album", handleGoToAlbum);
     return () => {
       window.removeEventListener("go-to-album", handleGoToAlbum);
     };
-  }, [liveAlbums]);
+  }, [liveAlbums, liveFolders, standaloneQasaed]);
 
   const handleShowAll = () => {
     setVisibleCount(filteredAndSortedAlbums.length);
@@ -606,59 +685,6 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   /**
-   * تشغيل عشوائي لمحتويات المجلد المفتوح حالياً فقط
-   */
-  const handleFolderShufflePlay = () => {
-    if (!currentFolderView) return;
-
-    const allTracks: any[] = [];
-
-    if (currentFolderView.folder_type === "albums_only") {
-      // جلب كل القصائد من الألبومات التابعة لهذا المجلد
-      const folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
-      folderAlbums.forEach(album => {
-        if (album.tracks) {
-          album.tracks.forEach(track => {
-            allTracks.push({
-              ...track,
-              audioUrl: track.audio_url,
-              album: album.title
-            });
-          });
-        }
-      });
-    } else {
-      // جلب القصائد المستقلة التابعة لهذا المجلد
-      const folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
-      folderTracks.forEach(track => {
-        allTracks.push({
-          ...track,
-          audioUrl: track.audio_url,
-          album: currentFolderView.name
-        });
-      });
-    }
-
-    if (allTracks.length === 0) {
-      toast({
-        title: "تنبيه",
-        description: "لا توجد قصائد في هذا المجلد للتشغيل العشوائي",
-      });
-      return;
-    }
-
-    const shuffledTracks = [...allTracks];
-    for (let i = shuffledTracks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
-    }
-
-    const firstTrack = shuffledTracks[0];
-    incrementTrackStat(firstTrack.id, "listens");
-    onPlay(firstTrack, shuffledTracks);
-  };
-
-  /**
    * المجلدات المرئية في القسم النشط الحالي
    */
   const visibleFolders = useMemo(() => {
@@ -742,8 +768,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const handleAction = async (action: string, track: any) => {
     // جلب اسم الألبوم لاستخدامه في التحميل والمشاركة
     const album = liveAlbums.find(a => String(a.id) === String(track.album_id));
-    const albumName = album ? album.title : "موشح";
-    const fullName = `${albumName} ${track.title}`;
+    const albumName = album ? album.title : "ألبوم";
+    const fullName = `${albumName} - ${track.title}`;
 
     // 1. كود المشاركة المطور
     if (action === "share") {
@@ -983,7 +1009,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                   className="space-y-6"
                 >
-                  {/* Folder Header: Back button + folder name + in-folder shuffle */}
+                  {/* Folder Header: Back button + folder name */}
                   <div className="flex items-center justify-between gap-3 flex-wrap" dir="rtl">
                     <div className="flex items-center gap-3">
                       <button
@@ -1005,14 +1031,6 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         <h3 className="text-sm md:text-base font-bold text-foreground">{currentFolderView.name}</h3>
                       </div>
                     </div>
-                    <button
-                      onClick={handleFolderShufflePlay}
-                      className="relative group overflow-hidden flex items-center justify-center w-10 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.3)] cursor-pointer text-primary"
-                      title="تشغيل عشوائي لمحتويات المجلد"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                      <Shuffle className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-all duration-500" />
-                    </button>
                   </div>
 
                   {/* Folder content rendering */}
@@ -1037,6 +1055,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                           expandedAlbumId={expandedAlbumId}
                           setExpandedAlbumId={setExpandedAlbumId}
                           viewMode={viewMode}
+                          highlightedTrackId={highlightedTrackId}
+                          highlightedAlbumId={highlightedAlbumId}
                         />
                       );
                     })()
@@ -1057,11 +1077,16 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                           {folderTracks.map((track, trackIdx) => (
                             <motion.div
                               key={track.id}
+                              id={`track-${track.id}`}
                               initial={{ opacity: 0, y: 16 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
                             >
-                              <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start" dir="rtl">
+                              <Card className={cn(
+                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start",
+                                highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                                "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                              )} dir="rtl">
                                 <CardContent className="p-0" dir="rtl">
                                   {/* Golden header — exact same structure as album card header */}
                                   <div className="p-4 sm:p-5 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-4 flex-wrap md:flex-nowrap" dir="rtl">
@@ -1226,6 +1251,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       expandedAlbumId={expandedAlbumId}
                       setExpandedAlbumId={setExpandedAlbumId}
                       viewMode={viewMode}
+                      highlightedTrackId={highlightedTrackId}
+                      highlightedAlbumId={highlightedAlbumId}
                     />
                   </TabsContent>
                   <TabsContent value="joy" className="mt-0 focus-visible:outline-none">
@@ -1237,6 +1264,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       expandedAlbumId={expandedAlbumId}
                       setExpandedAlbumId={setExpandedAlbumId}
                       viewMode={viewMode}
+                      highlightedTrackId={highlightedTrackId}
+                      highlightedAlbumId={highlightedAlbumId}
                     />
                   </TabsContent>
                   <TabsContent value="supplications" className="mt-0 focus-visible:outline-none">
@@ -1248,6 +1277,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       expandedAlbumId={expandedAlbumId}
                       setExpandedAlbumId={setExpandedAlbumId}
                       viewMode={viewMode}
+                      highlightedTrackId={highlightedTrackId}
+                      highlightedAlbumId={highlightedAlbumId}
                     />
                   </TabsContent>
 
@@ -1265,7 +1296,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                           onClick={handleShowAll}
                           whileHover={{ scale: 1.03, translateY: -2 }}
                           whileTap={{ scale: 0.98 }}
-                          className="relative group overflow-hidden flex items-center justify-center gap-3 px-8 h-12 min-w-[180px] rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)] text-primary text-xs font-bold"
+                          className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.3)] text-primary text-xs font-bold cursor-pointer"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                           <span className="relative z-10">عرض الكل</span>
@@ -1317,7 +1348,9 @@ function AlbumGrid({
   onIncrementStat,
   expandedAlbumId,
   setExpandedAlbumId,
-  viewMode = "list"
+  viewMode = "list",
+  highlightedTrackId,
+  highlightedAlbumId
 }: {
   albums: any[],
   onPlay: any,
@@ -1325,7 +1358,9 @@ function AlbumGrid({
   onIncrementStat: (trackId: string | number, type: "listens" | "downloads") => void,
   expandedAlbumId: string | number | null,
   setExpandedAlbumId: (id: string | number | null) => void,
-  viewMode?: "list" | "grid"
+  viewMode?: "list" | "grid",
+  highlightedTrackId?: string | number | null,
+  highlightedAlbumId?: string | number | null
 }) {
   if (albums.length === 0) {
     return (
@@ -1420,7 +1455,11 @@ function AlbumGrid({
                   }}
                   className="flex"
                 >
-                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative" dir="rtl">
+                  <Card className={cn(
+                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
+                    highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
+                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                  )} dir="rtl">
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
@@ -1496,10 +1535,14 @@ function AlbumGrid({
                   delay: idx < 5 ? idx * 0.05 : (idx % 5) * 0.05,
                 }}
               >
-                <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start" dir="rtl">
+                <Card className={cn(
+                  "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start",
+                  highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
+                  "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                )} dir="rtl">
                   <CardContent className="p-0" dir="rtl">
                     {/* ترويسة الألبوم */}
-                    <div className="p-4 sm:p-5 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-4 flex-wrap md:flex-nowrap" dir="rtl">
+                    <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-4 flex-wrap md:flex-nowrap" dir="rtl">
                       <div className="flex items-center gap-3 sm:gap-4 text-start">
                         <button
                           onClick={() => handleAlbumPlay(album, idx)}
@@ -1544,7 +1587,7 @@ function AlbumGrid({
                     </div>
 
                     {/* قائمة القصائد */}
-                    <div className="px-2 pb-4" dir="rtl">
+                    <div className="px-2 pb-1.5" dir="rtl">
                       <Accordion
                         type="single"
                         collapsible
@@ -1563,7 +1606,7 @@ function AlbumGrid({
                         <AccordionItem value="tracks" className="border-none">
                           <AccordionTrigger className="hover:no-underline py-2.5 px-4 rounded-xl hover:bg-primary/5 transition-all text-[9px] uppercase opacity-70 hover:opacity-100 flex gap-2 justify-between flex-row group/trigger">
                             <div className="flex items-center gap-2 flex-row">
-                              <span className="group-data-[state=open]/text-primary uppercase text-[10px] md:text-sm font-bold">
+                              <span className="group-data-[state=open]/text-primary uppercase text-[9px] md:text-xs font-light">
                                 تصفح القصائد
                               </span>
                               <span className="w-5 h-5 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-[9px] border border-primary/10">
@@ -1576,7 +1619,12 @@ function AlbumGrid({
                               album.tracks.map((track: any, trackIdx: number) => (
                                 <div
                                   key={track.id}
-                                  className="flex items-center justify-between p-2 rounded-xl bg-foreground/5 hover:bg-primary/10 group/item transition-all border border-transparent hover:border-primary/5 gap-2 flex-row"
+                                  id={`track-${track.id}`}
+                                  className={cn(
+                                    "flex items-center justify-between p-2 rounded-xl bg-foreground/5 hover:bg-primary/10 group/item transition-all border border-transparent hover:border-primary/5 gap-2 flex-row",
+                                    highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                                    "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse shadow-[0_0_20px_rgba(197,160,89,0.4)]"
+                                  )}
                                   dir="rtl"
                                 >
                                   <div className="flex items-center gap-3 flex-1 min-w-0 flex-row">
