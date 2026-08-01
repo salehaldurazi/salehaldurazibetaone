@@ -1421,6 +1421,17 @@ function AlbumGrid({
     };
   }, []);
 
+  // Lock background body scroll when Grid view album is expanded to prevent scroll leakage
+  useEffect(() => {
+    if (viewMode === "grid" && expandedAlbumId) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [viewMode, expandedAlbumId]);
+
   if (albums.length === 0) {
     return (
       <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
@@ -1746,8 +1757,8 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Dynamic Player Clearance */}
-      <AnimatePresence>
+      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Dynamic Player Clearance & Strict Layout Isolation */}
+      <AnimatePresence mode="wait">
         {viewMode === "grid" && selectedAlbumForGrid && (() => {
           const modalListens = selectedAlbumForGrid.tracks
             ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.listens_count || 0), 0)
@@ -1756,43 +1767,48 @@ function AlbumGrid({
             ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.downloads_count || 0), 0)
             : 0;
 
-          // Dynamic player clearance padding and responsive max heights
-          let bottomPaddingClass = "pb-4 sm:pb-6";
+          // Dynamic player clearance padding and responsive max heights for close proximity
+          let bottomPaddingClass = "pb-6 sm:pb-8";
           let modalMaxHeightClass = "max-h-[82vh]";
-          let tracklistMaxHeightClass = "max-h-[60vh]";
+          let tracklistMaxHeightClass = "max-h-[62vh]";
 
           if (playerState.isActive) {
             if (playerState.isMinimized) {
-              bottomPaddingClass = "pb-[10.5rem] sm:pb-[11.5rem]";
-              modalMaxHeightClass = "max-h-[66vh]";
-              tracklistMaxHeightClass = "max-h-[46vh]";
+              // Mini player active: place modal in close proximity right above mini player bar
+              bottomPaddingClass = "pb-[10rem] sm:pb-[10.5rem]";
+              modalMaxHeightClass = "max-h-[68vh]";
+              tracklistMaxHeightClass = "max-h-[48vh]";
             } else {
-              bottomPaddingClass = "pb-[14.5rem] sm:pb-[15.5rem]";
-              modalMaxHeightClass = "max-h-[54vh]";
-              tracklistMaxHeightClass = "max-h-[36vh]";
+              // Full player active: place modal in close proximity right above full player bar
+              bottomPaddingClass = "pb-[14rem] sm:pb-[14.5rem]";
+              modalMaxHeightClass = "max-h-[56vh]";
+              tracklistMaxHeightClass = "max-h-[38vh]";
             }
           }
 
           return (
             <motion.div
+              key="grid-album-modal-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               className={cn(
-                "fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-all duration-500 ease-in-out",
+                "fixed inset-0 z-[150] flex items-end justify-center px-3 sm:px-4 bg-black/75 backdrop-blur-md transition-all duration-500 ease-in-out overscroll-contain",
                 bottomPaddingClass
               )}
               onClick={() => setExpandedAlbumId(null)}
               dir="rtl"
+              style={{ touchAction: "none" }}
             >
               <motion.div
-                initial={{ scale: 0.93, opacity: 0, y: 20 }}
+                key={`grid-album-modal-${selectedAlbumForGrid.id}`}
+                initial={{ scale: 0.95, opacity: 0, y: 28 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.93, opacity: 0, y: 20 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ scale: 0.95, opacity: 0, y: 28 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
-                  "relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2.2rem] p-5 sm:p-6 shadow-2xl overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out",
+                  "relative w-full max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-[2.2rem] p-4 sm:p-6 shadow-2xl overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain",
                   modalMaxHeightClass
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -1801,7 +1817,7 @@ function AlbumGrid({
                 <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Modal Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-primary/10 shrink-0">
+                <div className="flex items-center justify-between pb-3.5 border-b border-primary/10 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <button
                       onClick={() =>
@@ -1810,7 +1826,7 @@ function AlbumGrid({
                           albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
                         )
                       }
-                      className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0 group/playbtn"
+                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0 group/playbtn"
                       title="تشغيل الألبوم كاملاً"
                     >
                       <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/playbtn:scale-110 transition-transform duration-300" />
@@ -1820,14 +1836,14 @@ function AlbumGrid({
                         {selectedAlbumForGrid.title}
                       </h3>
                       {/* Sleek RTL flex row for Year, Status Label & Stats */}
-                      <div className="flex items-center gap-2.5 text-xs text-foreground/70 flex-wrap mt-1">
+                      <div className="flex items-center gap-2 text-xs text-foreground/70 flex-wrap mt-0.5">
                         <span className="font-semibold text-foreground/80">{selectedAlbumForGrid.year}</span>
                         {selectedAlbumForGrid.status_label && (
                           <span className="inline-flex items-center bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold text-[10px] border border-primary/15 shadow-sm">
                             {selectedAlbumForGrid.status_label}
                           </span>
                         )}
-                        <div className="flex items-center gap-2 text-[11px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 rounded-lg backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-2 py-0.5 rounded-lg backdrop-blur-sm">
                           <div className="flex items-center gap-1">
                             <Headphones className="w-3 h-3 text-primary opacity-80" />
                             <span>{modalListens.toLocaleString("en-US")}</span>
