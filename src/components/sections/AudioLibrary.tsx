@@ -1247,7 +1247,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                               transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
                             >
                               <Card className={cn(
-                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start",
+                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] shadow-2xl text-start",
                                 highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
                                 "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
                               )} dir="rtl">
