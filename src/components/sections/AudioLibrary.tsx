@@ -672,60 +672,180 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     window.dispatchEvent(event);
   };
 
-  const handleShufflePlay = () => {
-    // جلب كافة الألبومات التي تنتمي للقسم النشط الحالي
-    const categoryAlbums = liveAlbums.filter(album => album.category === activeCategory);
+  /**
+   * دالة مساعدة لاستخراج شارة المجلد أو الألبوم الأب
+   */
+  const getParentContextBadge = (item: any) => {
+    if (item.folder_id != null && item.folder_id !== 0) {
+      const folder = liveFolders.find((f) => String(f.id) === String(item.folder_id));
+      if (folder) return folder.name;
+    }
+    return null;
+  };
 
-    // استخراج كافة القصائد من هذه الألبومات وتجهيزها للتشغيل
-    const allTracks: any[] = [];
-    categoryAlbums.forEach(album => {
-      if (album.tracks) {
+  /**
+   * فرز قائمة القصائد بناءً على الخيار المحدد
+   */
+  const sortTracks = (tracks: Track[], sortOption: SortOption) => {
+    return [...tracks].sort((a, b) => {
+      const yearA = Number(a.year || a.release_year || 0);
+      const yearB = Number(b.year || b.release_year || 0);
+      switch (sortOption) {
+        case "newest":
+          return yearB - yearA;
+        case "oldest":
+          return yearA - yearB;
+        case "az":
+          return a.title.localeCompare(b.title, "ar");
+        case "za":
+          return b.title.localeCompare(a.title, "ar");
+        case "popular":
+          return (b.listens_count || 0) - (a.listens_count || 0);
+        default:
+          return 0;
+      }
+    });
+  };
+
+  /**
+   * فرز قائمة الألبومات بناءً على الخيار المحدد
+   */
+  const sortAlbums = (albumsList: Album[], sortOption: SortOption) => {
+    return [...albumsList].sort((a, b) => {
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      switch (sortOption) {
+        case "newest":
+          return yearB - yearA;
+        case "oldest":
+          return yearA - yearB;
+        case "az":
+          return a.title.localeCompare(b.title, "ar");
+        case "za":
+          return b.title.localeCompare(a.title, "ar");
+        case "popular": {
+          const sumListens = (alb: Album) =>
+            alb.tracks ? alb.tracks.reduce((sum, t) => sum + (t.listens_count || 0), 0) : 0;
+          return sumListens(b) - sumListens(a);
+        }
+        default:
+          return 0;
+      }
+    });
+  };
+
+  /**
+   * التشغيل العشوائي التكيفي بناءً على السياق الحالي (المجلد النشط / الألبوم المفتوح / المكتبة الرئيسية)
+   */
+  const handleShufflePlay = () => {
+    let poolTracks: any[] = [];
+
+    // 1. السياق الأول: تشغيل من داخل مجلد نشط
+    if (currentFolderView) {
+      if (currentFolderView.folder_type === "albums_only") {
+        const folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
+        folderAlbums.forEach(album => {
+          if (album.tracks) {
+            album.tracks.forEach(track => {
+              poolTracks.push({
+                ...track,
+                audioUrl: track.audio_url,
+                album: album.title
+              });
+            });
+          }
+        });
+      } else {
+        const folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
+        folderTracks.forEach(track => {
+          poolTracks.push({
+            ...track,
+            audioUrl: track.audio_url,
+            album: currentFolderView.name
+          });
+        });
+      }
+    } 
+    // 2. السياق الثاني: تشغيل من داخل ألبوم مفتوح
+    else if (expandedAlbumId) {
+      const album = liveAlbums.find(a => String(a.id) === String(expandedAlbumId));
+      if (album && album.tracks) {
         album.tracks.forEach(track => {
-          allTracks.push({
+          poolTracks.push({
             ...track,
             audioUrl: track.audio_url,
             album: album.title
           });
         });
       }
-    });
+    } 
+    // 3. السياق الثالث: تشغيل شامل من كل مجلدات وألبومات وقصائد القسم النشط
+    else {
+      const categoryAlbums = liveAlbums.filter(album => album.category === activeCategory);
+      categoryAlbums.forEach(album => {
+        if (album.tracks) {
+          album.tracks.forEach(track => {
+            poolTracks.push({
+              ...track,
+              audioUrl: track.audio_url,
+              album: album.title
+            });
+          });
+        }
+      });
 
-    // إضافة القصائد المستقلة (من مجلدات القصائد) ضمن نفس القسم
-    const categoryFolderIds = liveFolders
-      .filter(f => f.category === activeCategory && f.folder_type === "qasaed_only")
-      .map(f => f.id);
-    standaloneQasaed.forEach(track => {
-      if (track.folder_id && categoryFolderIds.includes(Number(track.folder_id))) {
-        allTracks.push({
-          ...track,
-          audioUrl: track.audio_url,
-          album: "قصيدة مستقلة"
-        });
-      }
-    });
+      const categoryFolderIds = liveFolders
+        .filter(f => f.category === activeCategory)
+        .map(f => f.id);
 
-    if (allTracks.length === 0) {
+      standaloneQasaed.forEach(track => {
+        if (track.folder_id && categoryFolderIds.includes(Number(track.folder_id))) {
+          poolTracks.push({
+            ...track,
+            audioUrl: track.audio_url,
+            album: "قصيدة جديدة"
+          });
+        }
+      });
+    }
+
+    if (poolTracks.length === 0) {
       toast({
         title: "تنبيه",
-        description: "لا توجد قصائد متوفرة في هذا القسم للتشغيل العشوائي",
+        description: "لا توجد قصائد متوفرة في السياق الحالي للتشغيل العشوائي",
       });
       return;
     }
 
     // خوارزمية Fisher-Yates لخلط قائمة القصائد بشكل عشوائي كامل
-    const shuffledTracks = [...allTracks];
+    const shuffledTracks = [...poolTracks];
     for (let i = shuffledTracks.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
     }
 
     const firstTrack = shuffledTracks[0];
-
-    // زيادة عدد الاستماعات للمقطع الأول الذي سيبدأ تشغيله
     incrementTrackStat(firstTrack.id, "listens");
-
-    // استدعاء دالة التشغيل
     onPlay(firstTrack, shuffledTracks);
+  };
+
+  /**
+   * عنوان تلميح زر التشغيل العشوائي ديناميكياً بحسب السياق
+   */
+  const getShuffleTitle = () => {
+    if (currentFolderView) {
+      return `تشغيل عشوائي للمجلد (${currentFolderView.name})`;
+    }
+    if (expandedAlbumId) {
+      const album = liveAlbums.find(a => String(a.id) === String(expandedAlbumId));
+      return album ? `تشغيل عشوائي للألبوم (${album.title})` : "تشغيل عشوائي للألبوم";
+    }
+    const catNames: Record<string, string> = {
+      sorrow: "الأحزان",
+      joy: "الأفراح",
+      supplications: "الأدعية"
+    };
+    return `تشغيل عشوائي قسم (${catNames[activeCategory] || "المكتبة"})`;
   };
 
   /**
@@ -739,14 +859,14 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
    * تصفية وفرز الألبومات بناءً على الفئة، البحث، وخيار الفرز المختار
    */
   const filteredAndSortedAlbums = useMemo(() => {
-    // Filter by category AND exclude albums that belong to a folder (they render inside folder view only)
-    // folder_id check: null, undefined, 0 are all "no folder" → show in main view
     let result = liveAlbums.filter(album => {
+      // في حالة وجود نص في البحث، نبحث في كل الألبومات بغض النظر عن المجلد لإظهار سياق المجلد الأب
+      if (searchQuery) {
+        return album.category === activeCategory;
+      }
       const hasFolder = album.folder_id != null && album.folder_id !== 0;
       return album.category === activeCategory && !hasFolder;
     });
-
-    console.log("[AudioLibrary] filteredAndSortedAlbums (main view, no folder):", result.map(a => ({ id: a.id, title: a.title, folder_id: a.folder_id })));
 
     if (searchQuery) {
       const normalizedQuery = normalizeArabic(searchQuery);
@@ -759,7 +879,9 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           return {
             ...album,
             tracks: album.tracks.filter(track =>
-              albumMatches || normalizeArabic(track.title).includes(normalizedQuery)
+              albumMatches ||
+              normalizeArabic(track.title).includes(normalizedQuery) ||
+              (track.description && normalizeArabic(track.description).includes(normalizedQuery))
             ),
           };
         })
@@ -771,26 +893,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
         );
     }
 
-    const sortedRest = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return Number(b.year) - Number(a.year);
-        case "oldest":
-          return Number(a.year) - Number(b.year);
-        case "az":
-          return a.title.localeCompare(b.title, 'ar');
-        case "za":
-          return b.title.localeCompare(a.title, 'ar');
-        case "popular": {
-          const sumListens = (album: Album) => album.tracks.reduce((sum, t) => sum + (t.listens_count || 0), 0);
-          return sumListens(b) - sumListens(a);
-        }
-        default:
-          return 0;
-      }
-    });
+    const sortedRest = sortAlbums(result, sortBy);
 
-    // If there is a sharedAlbumId, dynamically prioritize it to be the first item in the list
     if (sharedAlbumId) {
       const idx = sortedRest.findIndex(album => String(album.id) === String(sharedAlbumId));
       if (idx > -1) {
@@ -801,6 +905,61 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
     return sortedRest;
   }, [searchQuery, activeCategory, liveAlbums, sortBy, sharedAlbumId]);
+
+  /**
+   * القصائد المستقلة المطابقة للبحث في العرض العام مع سياق المجلد الأب
+   */
+  const globalMatchingTracks = useMemo(() => {
+    if (!searchQuery || currentFolderView !== null) return [];
+    const normQ = normalizeArabic(searchQuery);
+    const categoryFolderIds = liveFolders
+      .filter(f => f.category === activeCategory)
+      .map(f => f.id);
+
+    const matches = standaloneQasaed.filter(t => {
+      const inCat = t.folder_id && categoryFolderIds.includes(Number(t.folder_id));
+      if (!inCat) return false;
+      const matchTitle = normalizeArabic(t.title).includes(normQ);
+      const matchDesc = t.description ? normalizeArabic(t.description).includes(normQ) : false;
+      return matchTitle || matchDesc;
+    });
+    return sortTracks(matches, sortBy);
+  }, [searchQuery, currentFolderView, standaloneQasaed, liveFolders, activeCategory, sortBy]);
+
+  /**
+   * ألبومات المجلد الحالي مفلترة بالبحث ومفرزة حسب sortBy
+   */
+  const inFolderAlbums = useMemo(() => {
+    if (!currentFolderView || currentFolderView.folder_type !== "albums_only") return [];
+    let albumsList = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
+    if (searchQuery) {
+      const normQ = normalizeArabic(searchQuery);
+      albumsList = albumsList.map(album => {
+        const matchAlb = normalizeArabic(album.title).includes(normQ) || (album.year && normalizeArabic(String(album.year)).includes(normQ));
+        return {
+          ...album,
+          tracks: album.tracks.filter(t => matchAlb || normalizeArabic(t.title).includes(normQ) || (t.description && normalizeArabic(t.description).includes(normQ)))
+        };
+      }).filter(album => album.tracks.length > 0 || normalizeArabic(album.title).includes(normQ));
+    }
+    return sortAlbums(albumsList, sortBy);
+  }, [currentFolderView, liveAlbums, searchQuery, sortBy]);
+
+  /**
+   * قصائد المجلد الحالي مفلترة بالبحث ومفرزة حسب sortBy
+   */
+  const inFolderTracks = useMemo(() => {
+    if (!currentFolderView || currentFolderView.folder_type !== "qasaed_only") return [];
+    let tracksList = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
+    if (searchQuery) {
+      const normQ = normalizeArabic(searchQuery);
+      tracksList = tracksList.filter(t =>
+        normalizeArabic(t.title).includes(normQ) ||
+        (t.description && normalizeArabic(t.description).includes(normQ))
+      );
+    }
+    return sortTracks(tracksList, sortBy);
+  }, [currentFolderView, standaloneQasaed, searchQuery, sortBy]);
 
   const visibleAlbums = useMemo(() => {
     return filteredAndSortedAlbums.slice(0, visibleCount);
@@ -968,11 +1127,11 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   )}
                 </button>
 
-                {/* زر التشغيل العشوائي للقسم الحالي (أيقونة فقط) */}
+                {/* زر التشغيل العشوائي التكيفي بالسياق الحالي */}
                 <button
                   onClick={handleShufflePlay}
                   className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
-                  title={activeCategory === "sorrow" ? "عشوائي الأحزان" : activeCategory === "joy" ? "عشوائي الأفراح" : "عشوائي الأدعية"}
+                  title={getShuffleTitle()}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                   <Shuffle className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-all duration-500" />
@@ -1081,18 +1240,18 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {currentFolderView.folder_type === "albums_only" ? (
                     /* ── Albums-Only Folder: Render album cards ── */
                     (() => {
-                      const folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
-                      if (folderAlbums.length === 0) {
+                      if (inFolderAlbums.length === 0) {
                         return (
                           <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
                             <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                            <p className="text-sm tracking-widest">لا توجد ألبومات في هذا المجلد</p>
+                            <p className="text-sm tracking-widest">لا توجد ألبومات تطابق نتائج البحث في هذا المجلد</p>
                           </div>
                         );
                       }
                       return (
                         <AlbumGrid
-                          albums={folderAlbums}
+                          albums={inFolderAlbums}
+                          folders={liveFolders}
                           onPlay={onPlay}
                           onAction={handleAction}
                           onIncrementStat={incrementTrackStat}
@@ -1107,20 +1266,19 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   ) : (
                     /* ── Qasaed-Only Folder: Render golden track cards ── */
                     (() => {
-                      const folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
-                      if (folderTracks.length === 0) {
+                      if (inFolderTracks.length === 0) {
                         return (
                           <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
                             <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                            <p className="text-sm tracking-widest">لا توجد قصائد في هذا المجلد</p>
+                            <p className="text-sm tracking-widest">لا توجد قصائد تطابق نتائج البحث في هذا المجلد</p>
                           </div>
                         );
                       }
                       if (viewMode === "grid") {
                         return (
-                          <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 max-w-6xl mx-auto" dir="rtl">
+                          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
                             <AnimatePresence mode="popLayout">
-                              {folderTracks.map((track, trackIdx) => (
+                              {inFolderTracks.map((track, trackIdx) => (
                                 <motion.div
                                   key={track.id}
                                   id={`track-${track.id}`}
@@ -1153,7 +1311,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                             audioUrl: track.audio_url,
                                             album: currentFolderView.name
                                           };
-                                          const mappedPlaylist = folderTracks.map(t => ({
+                                          const mappedPlaylist = inFolderTracks.map(t => ({
                                             ...t,
                                             audioUrl: t.audio_url,
                                             album: currentFolderView.name
@@ -1163,67 +1321,67 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
                                         title="تشغيل القصيدة"
                                       >
-                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                                       </button>
                                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
                                         {(track as any).status_label && (
-                                          <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-primary/15 shadow-sm shrink-0">
                                             {(track as any).status_label}
                                           </span>
                                         )}
                                         {(track.year || track.release_year) && (
-                                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-foreground/10 shadow-sm shrink-0">
                                             {track.year || track.release_year}
                                           </span>
                                         )}
                                       </div>
                                     </div>
 
-                                    {/* Center Section: Track Title & Description */}
+                                    {/* Middle Section: Track Title & Small Subtitle/Description */}
                                     <div className="my-auto relative z-10 text-right w-full px-1" dir="rtl">
-                                      <h3 className="text-[11px] sm:text-xs font-bold text-foreground text-right truncate w-full leading-snug">
+                                      <h3 className="text-xs sm:text-sm font-bold text-foreground text-right truncate w-full leading-snug">
                                         {track.title}
                                       </h3>
                                       {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
-                                        <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-medium text-right truncate w-full mt-0.5">
+                                        <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal text-right truncate w-full mt-0.5">
                                           {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
                                         </p>
                                       )}
                                     </div>
 
-                                    {/* Bottom Section: Compact Inline Stats Container & Premium Left Arrow Action Button */}
+                                    {/* Bottom Section: Compact Inline Stats Container & Sleek Left Arrow Action Button */}
                                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-1.5 text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 backdrop-blur-sm w-auto shrink-0">
-                                        <div className="flex items-center gap-0.5">
-                                          <Headphones className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-primary shrink-0 opacity-80" />
-                                          <span className="font-bold">{(track.listens_count || 0).toLocaleString("en-US")}</span>
+                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                          <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
                                         </div>
                                         <div className="w-px h-2 bg-foreground/15 mx-0.5" />
-                                        <div className="flex items-center gap-0.5">
-                                          <Download className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-primary shrink-0 opacity-80" />
-                                          <span className="font-bold">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                                          <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
                                         </div>
                                       </div>
 
-                                      {/* Premium Left Arrow Action Button & Portal Dropdown Menu */}
+                                      {/* Left Arrow Button & Portal Popover Menu */}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                           <button
-                                            className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center transition-all duration-300 shadow-sm hover:scale-105 active:scale-95 cursor-pointer shrink-0 group/btn"
+                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
                                             title="خيارات"
                                           >
-                                            <ChevronLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                                            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
                                           </button>
                                         </DropdownMenuTrigger>
 
                                         <DropdownMenuContent
                                           align="end"
                                           sideOffset={6}
-                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[110px] rounded-xl p-1 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
+                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
                                         >
                                           <DropdownMenuItem
                                             onClick={() => handleAction("download", track)}
-                                            className="flex items-center gap-2 w-full px-2.5 py-1 text-[10px] font-semibold text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer justify-end text-right"
+                                            className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
                                           >
                                             <span>تحميل</span>
                                             <Download className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -1231,7 +1389,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                                           <DropdownMenuItem
                                             onClick={() => handleAction("share", track)}
-                                            className="flex items-center gap-2 w-full px-2.5 py-1 text-[10px] font-semibold text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer justify-end text-right"
+                                            className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
                                           >
                                             <span>مشاركة</span>
                                             <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -1249,7 +1407,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                       return (
                         <div className="space-y-3 max-w-5xl mx-auto">
-                          {folderTracks.map((track, trackIdx) => (
+                          {inFolderTracks.map((track, trackIdx) => (
                             <motion.div
                               key={track.id}
                               id={`track-${track.id}`}
@@ -1274,7 +1432,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                             audioUrl: track.audio_url,
                                             album: currentFolderView.name
                                           };
-                                          const mappedPlaylist = folderTracks.map(t => ({
+                                          const mappedPlaylist = inFolderTracks.map(t => ({
                                             ...t,
                                             audioUrl: t.audio_url,
                                             album: currentFolderView.name
@@ -1422,6 +1580,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <TabsContent value="sorrow" className="mt-0 focus-visible:outline-none">
                     <AlbumGrid
                       albums={visibleAlbums}
+                      folders={liveFolders}
                       onPlay={onPlay}
                       onAction={handleAction}
                       onIncrementStat={incrementTrackStat}
@@ -1435,6 +1594,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <TabsContent value="joy" className="mt-0 focus-visible:outline-none">
                     <AlbumGrid
                       albums={visibleAlbums}
+                      folders={liveFolders}
                       onPlay={onPlay}
                       onAction={handleAction}
                       onIncrementStat={incrementTrackStat}
@@ -1448,6 +1608,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <TabsContent value="supplications" className="mt-0 focus-visible:outline-none">
                     <AlbumGrid
                       albums={visibleAlbums}
+                      folders={liveFolders}
                       onPlay={onPlay}
                       onAction={handleAction}
                       onIncrementStat={incrementTrackStat}
@@ -1520,6 +1681,7 @@ function HistoryIcon({ className }: { className?: string }) {
  */
 function AlbumGrid({
   albums,
+  folders = [],
   onPlay,
   onAction,
   onIncrementStat,
@@ -1530,6 +1692,7 @@ function AlbumGrid({
   highlightedAlbumId
 }: {
   albums: any[],
+  folders?: AudioFolder[],
   onPlay: any,
   onAction: (action: string, track: any) => void,
   onIncrementStat: (trackId: string | number, type: "listens" | "downloads") => void,
@@ -1689,6 +1852,11 @@ function AlbumGrid({
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
+                        {album.folder_id != null && album.folder_id !== 0 && (
+                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                            {folders.find((f: any) => String(f.id) === String(album.folder_id))?.name || "مجلد"}
+                          </span>
+                        )}
                         {album.status_label && (
                           <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                             {album.status_label}
@@ -1772,6 +1940,11 @@ function AlbumGrid({
                             {album.title}
                           </h3>
                           <div className="flex items-center gap-2 justify-start">
+                            {album.folder_id != null && album.folder_id !== 0 && (
+                              <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                                {folders.find((f: any) => String(f.id) === String(album.folder_id))?.name || "مجلد"}
+                              </span>
+                            )}
                             {album.status_label && (
                               <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                                 {album.status_label}
