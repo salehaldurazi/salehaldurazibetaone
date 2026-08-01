@@ -992,7 +992,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                         <ArrowRight className="w-3.5 h-3.5 relative z-10" />
-                        <span className="relative z-10">رجوع إلى المكتبة الرئيسية</span>
+                        <span className="relative z-10">رجوع</span>
                       </button>
                       <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-md">
