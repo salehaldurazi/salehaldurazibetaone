@@ -1116,7 +1116,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       }
                       if (viewMode === "grid") {
                         return (
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
+                          <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
                             <AnimatePresence mode="popLayout">
                               {folderTracks.map((track, trackIdx) => (
                                 <motion.div
@@ -1169,7 +1169,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                                       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap">
                                         {(track.year || track.release_year) && (
-                                          <span className="inline-flex items-center text-[10px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
                                             {track.year || track.release_year}
                                           </span>
                                         )}
@@ -1679,11 +1679,11 @@ function AlbumGrid({
                       </button>
                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
                         {album.status_label && (
-                          <span className="inline-flex items-center text-[10px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                          <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="inline-flex items-center text-[10px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                        <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
                           {album.year}
                         </span>
                       </div>
@@ -1762,11 +1762,11 @@ function AlbumGrid({
                           </h3>
                           <div className="flex items-center gap-2 justify-start">
                             {album.status_label && (
-                              <span className="inline-flex items-center text-[10px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                              <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                                 {album.status_label}
                               </span>
                             )}
-                            <p className="inline-flex items-center text-[10px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                            <p className="inline-flex items-center text-[6px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
                               {album.year}
                             </p>
                           </div>
