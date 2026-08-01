@@ -742,8 +742,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const handleAction = async (action: string, track: any) => {
     // جلب اسم الألبوم لاستخدامه في التحميل والمشاركة
     const album = liveAlbums.find(a => String(a.id) === String(track.album_id));
-    const albumName = album ? album.title : "ألبوم";
-    const fullName = `${albumName} - ${track.title}`;
+    const albumName = album ? album.title : "موشح";
+    const fullName = `${albumName} ${track.title}`;
 
     // 1. كود المشاركة المطور
     if (action === "share") {
