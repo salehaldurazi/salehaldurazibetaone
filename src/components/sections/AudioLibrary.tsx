@@ -21,6 +21,7 @@ import {
   Calendar,
   Flame,
   ChevronDown,
+  ChevronLeft,
   Shuffle,
   LayoutGrid,
   List,
@@ -247,6 +248,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   const [currentFolderView, setCurrentFolderView] = useState<AudioFolder | null>(null);
   const [highlightedTrackId, setHighlightedTrackId] = useState<string | number | null>(null);
   const [highlightedAlbumId, setHighlightedAlbumId] = useState<string | number | null>(null);
+  const [activeTrackMenuId, setActiveTrackMenuId] = useState<string | number | null>(null);
   const [playerState, setPlayerState] = useState<{ isActive: boolean; isMinimized: boolean }>(() => {
     if (typeof window !== "undefined" && (window as any).__playerState) {
       return (window as any).__playerState;
@@ -1116,7 +1118,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       }
                       if (viewMode === "grid") {
                         return (
-                          <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
+                          <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 max-w-6xl mx-auto" dir="rtl">
                             <AnimatePresence mode="popLayout">
                               {folderTracks.map((track, trackIdx) => (
                                 <motion.div
@@ -1133,18 +1135,15 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   }}
                                   className="flex"
                                 >
-                                  <Card
-                                    className={cn(
-                                      "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-3 sm:p-4 md:p-5 text-start items-start w-full relative",
-                                      highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                      "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
-                                    )}
-                                    dir="rtl"
-                                  >
+                                  <Card className={cn(
+                                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
+                                    highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                                  )} dir="rtl">
                                     {/* Decorative background glow */}
                                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                                    {/* Top Bar: Play Button (Start / Right) + Year Badge & Duration Badge (End / Left) */}
+                                    {/* Top Bar: Quick Play Button + Badges */}
                                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                                       <button
                                         onClick={() => {
@@ -1161,41 +1160,35 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                           }));
                                           onPlay(mappedTrack, mappedPlaylist);
                                         }}
-                                        className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
                                         title="تشغيل القصيدة"
                                       >
-                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                                       </button>
-
-                                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap">
+                                      <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
+                                        {(track as any).status_label && (
+                                          <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                                            {(track as any).status_label}
+                                          </span>
+                                        )}
                                         {(track.year || track.release_year) && (
                                           <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
                                             {track.year || track.release_year}
                                           </span>
                                         )}
-                                        {track.duration && (
-                                          <span className="inline-flex items-center text-[9px] sm:text-[10px] text-foreground/70 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
-                                            {track.duration}
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
 
-                                    {/* Middle Section: Track Title & Short Description / Subtitle */}
+                                    {/* Middle Section: Track Title */}
                                     <div className="my-auto relative z-10 text-start w-full" dir="rtl">
-                                      <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-3">
                                         {track.title}
                                       </h3>
-                                      {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
-                                        <p className="text-[11px] text-zinc-400 line-clamp-1 truncate mt-0.5 font-light">
-                                          {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
-                                        </p>
-                                      )}
                                     </div>
 
-                                    {/* Bottom Section: Compact Inline Stats Container & Action Buttons */}
+                                    {/* Bottom Section: Compact Inline Stats Container & Sleek Left Arrow Action Button */}
                                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-1.5 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
                                         <div className="flex items-center gap-0.5">
                                           <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
                                           <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
@@ -1207,25 +1200,68 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
 
-                                      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => handleAction("download", track)}
-                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/40 hover:text-primary transition-all p-0"
-                                          title="تنزيل"
+                                      {/* Left Arrow Icon Button & Popover Menu */}
+                                      <div className="relative shrink-0">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveTrackMenuId(activeTrackMenuId === track.id ? null : track.id);
+                                          }}
+                                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                                          title="خيارات"
                                         >
-                                          <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => handleAction("share", track)}
-                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/40 hover:text-primary transition-all p-0"
-                                          title="مشاركة"
-                                        >
-                                          <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        </Button>
+                                          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                                        </button>
+
+                                        {activeTrackMenuId === track.id && (
+                                          <>
+                                            <div
+                                              className="fixed inset-0 z-20"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveTrackMenuId(null);
+                                              }}
+                                            />
+                                            <div
+                                              className="absolute bottom-9 left-0 z-30 min-w-[120px] rounded-xl bg-[#1a1a1a] border border-primary/20 p-1 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 text-start"
+                                              dir="rtl"
+                                            >
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveTrackMenuId(null);
+                                                  incrementTrackStat(track.id, "listens");
+                                                  const mappedTrack = {
+                                                    ...track,
+                                                    audioUrl: track.audio_url,
+                                                    album: currentFolderView.name
+                                                  };
+                                                  const mappedPlaylist = folderTracks.map(t => ({
+                                                    ...t,
+                                                    audioUrl: t.audio_url,
+                                                    album: currentFolderView.name
+                                                  }));
+                                                  onPlay(mappedTrack, mappedPlaylist);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                              >
+                                                <Headphones className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                <span>استماع</span>
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveTrackMenuId(null);
+                                                  handleAction("download", track);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                                              >
+                                                <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                <span>تحميل</span>
+                                              </button>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   </Card>
@@ -1976,7 +2012,7 @@ function AlbumGrid({
                         </h3>
                         {/* Sleek RTL flex row for Year, Status Label & Stats */}
                         <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-foreground/70 flex-wrap mt-0.5">
-                          <span className="font-semibold text-foreground/80 text-[10px] sm:text-xs">{selectedAlbumForGrid.year}</span>
+                          <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">{selectedAlbumForGrid.year}</span>
                           {selectedAlbumForGrid.status_label && (
                             <span className="inline-flex items-center bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold text-[9px] sm:text-[10px] border border-primary/15 shadow-sm">
                               {selectedAlbumForGrid.status_label}
