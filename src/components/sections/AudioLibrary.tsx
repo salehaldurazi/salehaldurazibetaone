@@ -1757,7 +1757,7 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Overlay Dialog for Grid View Tracklist with Dynamic Player Clearance, Mobile Display Optimization & Strict Layout Isolation */}
+      {/* Modern Glassmorphic Container for Grid View Tracklist - Anchored Below Category Navigation, Bounded Above Navigation Bar (z-[90] below Nav z-[110]) */}
       <AnimatePresence mode="wait">
         {viewMode === "grid" && selectedAlbumForGrid && (() => {
           const modalListens = selectedAlbumForGrid.tracks
@@ -1767,22 +1767,17 @@ function AlbumGrid({
             ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.downloads_count || 0), 0)
             : 0;
 
-          // Dynamic player clearance padding and mobile dynamic viewport heights (dvh) for close proximity
-          let bottomPaddingClass = "pb-3 sm:pb-6";
-          let modalMaxHeightClass = "max-h-[82dvh] max-h-[82vh]";
-          let tracklistMaxHeightClass = "max-h-[62dvh] max-h-[62vh]";
+          // Dynamic top and bottom boundary offsets for strict viewport isolation (above nav bar z-[110] and audio player z-[160])
+          const topOffsetClass = "top-20 sm:top-24 md:top-28";
+          let bottomOffsetClass = "bottom-[6.5rem] sm:bottom-[7rem]"; // Stops strictly ABOVE bottom navigation bar (fixed bottom-6)
 
           if (playerState.isActive) {
             if (playerState.isMinimized) {
-              // Mini player active: place modal in close proximity right above mini player bar
-              bottomPaddingClass = "pb-[9.5rem] sm:pb-[10.5rem]";
-              modalMaxHeightClass = "max-h-[66dvh] max-h-[66vh]";
-              tracklistMaxHeightClass = "max-h-[46dvh] max-h-[46vh]";
+              // Mini player active: lock bottom edge right above mini player bar
+              bottomOffsetClass = "bottom-[10.5rem] sm:bottom-[11.5rem]";
             } else {
-              // Full player active: place modal in close proximity right above full player bar
-              bottomPaddingClass = "pb-[13.5rem] sm:pb-[14.5rem]";
-              modalMaxHeightClass = "max-h-[54dvh] max-h-[54vh]";
-              tracklistMaxHeightClass = "max-h-[36dvh] max-h-[36vh]";
+              // Full player active: lock bottom edge right above full player bar
+              bottomOffsetClass = "bottom-[14.5rem] sm:bottom-[15.5rem]";
             }
           }
 
@@ -1794,23 +1789,19 @@ function AlbumGrid({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               className={cn(
-                "fixed inset-0 z-[150] flex items-end justify-center px-3 sm:px-4 bg-black/75 backdrop-blur-md transition-all duration-500 ease-in-out overscroll-contain",
-                bottomPaddingClass
+                "fixed inset-x-0 z-[90] flex items-start justify-center px-3 sm:px-4 pointer-events-none transition-all duration-500 ease-in-out overscroll-contain",
+                topOffsetClass,
+                bottomOffsetClass
               )}
-              onClick={() => setExpandedAlbumId(null)}
               dir="rtl"
-              style={{ touchAction: "none" }}
             >
               <motion.div
                 key={`grid-album-modal-${selectedAlbumForGrid.id}`}
-                initial={{ scale: 0.95, opacity: 0, y: 28 }}
+                initial={{ scale: 0.96, opacity: 0, y: -16 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 28 }}
+                exit={{ scale: 0.96, opacity: 0, y: -16 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className={cn(
-                  "relative w-[calc(100vw-1.5rem)] max-w-lg bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 shadow-2xl overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain",
-                  modalMaxHeightClass
-                )}
+                className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-full max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Background Glow */}
@@ -1869,10 +1860,7 @@ function AlbumGrid({
 
                 {/* Premium Custom Scrollbar Tracklist with Mobile Touch-Pan Isolation */}
                 <div
-                  className={cn(
-                    "py-2.5 sm:py-3 space-y-1.5 sm:space-y-2 overflow-y-auto flex-1 pe-1 ps-0.5 transition-all duration-500 ease-in-out [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent] overscroll-contain touch-pan-y",
-                    tracklistMaxHeightClass
-                  )}
+                  className="py-2.5 sm:py-3 space-y-1.5 sm:space-y-2 overflow-y-auto flex-1 pe-1 ps-0.5 transition-all duration-500 ease-in-out [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent] overscroll-contain touch-pan-y"
                   style={{ touchAction: "pan-y" }}
                 >
                   {selectedAlbumForGrid.tracks &&
