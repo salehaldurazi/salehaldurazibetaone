@@ -68,7 +68,7 @@ export function Hero() {
         <FadeInSection className="animate-in fade-in zoom-in duration-1000">
           <div className="relative w-[120px] h-[120px] md:w-[180px] md:h-[180px]">
             <Image
-              src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/logo.png"
+              src="https://pub-4e74282116ce42688fee67ca11592467.r2.dev/img/logo.webp"
               alt="Saleh Al-Dirazi Logo"
               fill
               className="object-contain drop-shadow-[0_0_20px_rgba(197,160,89,0.3)]"
