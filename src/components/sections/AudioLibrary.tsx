@@ -1104,7 +1104,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   return (
-    <section id="audio" dir="rtl" className="py-24 md:py-32 pb-36 md:pb-48 scroll-mt-nav bg-background relative overflow-hidden text-start">
+    <section id="audio" dir="rtl" data-audio-library className="py-24 md:py-32 pb-36 md:pb-48 scroll-mt-nav bg-background relative overflow-hidden text-start">
       {/* تأثيرات الإضاءة الخلفية */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -1321,7 +1321,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       }
                       if (viewMode === "grid") {
                         return (
-                          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
+                          <div className="grid grid-cols-3 landscape:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
                             <AnimatePresence mode="popLayout">
                               {inFolderTracks.map((track, trackIdx) => (
                                 <motion.div
@@ -1861,7 +1861,7 @@ function AlbumGrid({
         className={cn(
           "grid transition-all duration-500",
           viewMode === "grid"
-            ? "grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
+            ? "grid-cols-3 landscape:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto"
             : "grid-cols-1 gap-3 max-w-5xl mx-auto"
         )}
       >
