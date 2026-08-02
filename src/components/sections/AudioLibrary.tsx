@@ -765,7 +765,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           });
         });
       }
-    } 
+    }
     // 2. السياق الثاني: تشغيل من داخل ألبوم مفتوح
     else if (expandedAlbumId) {
       const album = liveAlbums.find(a => String(a.id) === String(expandedAlbumId));
@@ -778,7 +778,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           });
         });
       }
-    } 
+    }
     // 3. السياق الثالث: تشغيل شامل من كل مجلدات وألبومات وقصائد القسم النشط
     else {
       const categoryAlbums = liveAlbums.filter(album => album.category === activeCategory);
@@ -966,24 +966,88 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   }, [filteredAndSortedAlbums, visibleCount]);
 
   /**
-     * معالجة إجراءات المشاركة والتحميل
-     */
+   * دالة مساعدة لتوليد اسم الملف المخصص وتنفيذ التحميل مباشرة عبر البراوزر
+   */
+  const handleDownload = async (trackTitle: string, fileUrl: string, folderName?: string, albumName?: string) => {
+    let baseName = trackTitle;
+
+    // التحقق مما إذا كان اسم المجلد يحتوي على "موشحات"
+    const isMowashahat = folderName && (
+      folderName.includes("موشحات") ||
+      normalizeArabic(folderName).includes(normalizeArabic("موشحات"))
+    );
+
+    if (isMowashahat) {
+      // إزالة أي بادئة سابقة مكررة من عنوان القصيدة مثل "موشح -" أو "موشحات -" لتجنب التكرار
+      const cleanTitle = trackTitle.replace(/^(موشح|موشحات)\s*[-–—]?\s*/i, "").trim();
+      baseName = `موشح - ${cleanTitle}`;
+    } else if (albumName && albumName.trim() !== "") {
+      const cleanTrackTitle = trackTitle.trim();
+      baseName = `${albumName.trim()} - ${cleanTrackTitle}`;
+    }
+
+    // تنظيف اسم الملف من الأحرف الخاصة غير المسموحة في أسماء الملفات
+    const safeFileName = `${baseName.replace(/[/\\?%*:|"<>]/g, "").trim()}.mp3`;
+
+    if (fileUrl) {
+      try {
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', safeFileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (err) {
+        window.open(fileUrl, "_blank");
+      }
+    }
+  };
+
+  /**
+   * معالجة إجراءات المشاركة والتحميل
+   */
   const handleAction = async (action: string, track: any) => {
     // جلب اسم الألبوم لاستخدامه في التحميل والمشاركة
     const album = liveAlbums.find(a => String(a.id) === String(track.album_id));
-    const albumName = album ? album.title : "ألبوم";
-    const fullName = `${albumName} - ${track.title}`;
+    const albumName = album ? album.title : "";
+
+    // استخراج اسم المجلد (إما المجلد المفتوح حالياً أو من كائن القصيدة/الألبوم)
+    let folderName = currentFolderView?.name || "";
+    if (!folderName && track.folder_id) {
+      const folder = liveFolders.find(f => String(f.id) === String(track.folder_id));
+      if (folder) folderName = folder.name;
+    }
+    if (!folderName && album?.folder_id) {
+      const folder = liveFolders.find(f => String(f.id) === String(album.folder_id));
+      if (folder) folderName = folder.name;
+    }
+
+    const isMowashahat = folderName && (
+      folderName.includes("موشحات") ||
+      normalizeArabic(folderName).includes(normalizeArabic("موشحات"))
+    );
+
+    let formattedName = track.title;
+    if (isMowashahat) {
+      const cleanTitle = track.title.replace(/^(موشح|موشحات)\s*[-–—]?\s*/i, "").trim();
+      formattedName = `موشح - ${cleanTitle}`;
+    } else if (albumName && albumName.trim() !== "") {
+      formattedName = `${albumName.trim()} - ${track.title.trim()}`;
+    }
 
     // 1. كود المشاركة المطور
     if (action === "share") {
-      // زيادة إحصائيات الاستماع عند المشاركة
       incrementTrackStat(track.id, "listens");
 
       const shareUrl = `${window.location.origin}/?track=${track.id}`;
-      const shareText = `${fullName}\n${shareUrl}`;
+      const shareText = `${formattedName}\n${shareUrl}`;
       const shareData = {
-        title: fullName, // وضعنا الاسم المنسق هنا
-        text: `استمع إلى "${fullName}" بصوت الرادود صالح الدرازي`,
+        title: formattedName,
+        text: `استمع إلى "${formattedName}" بصوت الرادود صالح الدرازي`,
         url: shareUrl,
       };
 
@@ -992,37 +1056,18 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           await navigator.share(shareData);
         } catch (error) {
           if ((error as Error).name !== 'AbortError') {
-            copyToClipboard(shareText, fullName);
+            copyToClipboard(shareText, formattedName);
           }
         }
       } else {
-        copyToClipboard(shareText, fullName);
+        copyToClipboard(shareText, formattedName);
       }
     }
 
     // 2. كود التحميل المطور
     if (action === "download") {
-      // زيادة إحصائيات التحميل عند الضغط على زر التحميل
       incrementTrackStat(track.id, "downloads");
-
-      if (track.audio_url) {
-        const fileName = `${fullName}.mp3`;
-
-        try {
-          const response = await fetch(track.audio_url);
-          const blob = await response.blob();
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.setAttribute('download', fileName);
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          window.URL.revokeObjectURL(downloadUrl);
-        } catch (err) {
-          window.open(track.audio_url, "_blank");
-        }
-      }
+      await handleDownload(track.title, track.audio_url, folderName, albumName);
     }
   };
 
@@ -1852,11 +1897,7 @@ function AlbumGrid({
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
-                        {album.folder_id != null && album.folder_id !== 0 && (
-                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
-                            {folders.find((f: any) => String(f.id) === String(album.folder_id))?.name || "مجلد"}
-                          </span>
-                        )}
+
                         {album.status_label && (
                           <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                             {album.status_label}
@@ -1940,11 +1981,7 @@ function AlbumGrid({
                             {album.title}
                           </h3>
                           <div className="flex items-center gap-2 justify-start">
-                            {album.folder_id != null && album.folder_id !== 0 && (
-                              <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
-                                {folders.find((f: any) => String(f.id) === String(album.folder_id))?.name || "مجلد"}
-                              </span>
-                            )}
+
                             {album.status_label && (
                               <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
                                 {album.status_label}
