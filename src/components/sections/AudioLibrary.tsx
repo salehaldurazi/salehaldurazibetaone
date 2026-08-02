@@ -1466,7 +1466,6 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                 "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
                               )} dir="rtl">
                                 <CardContent className="p-0" dir="rtl">
-                                  {/* Golden header — exact same structure as album card header */}
                                   <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-2 sm:gap-4 flex-nowrap" dir="rtl">
                                     <div className="flex items-center gap-3 sm:gap-4 text-start min-w-0">
                                       <button
@@ -1490,9 +1489,21 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                                       </button>
                                       <div className="text-start min-w-0">
-                                        <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight mb-0.5 truncate text-foreground">
-                                          {track.title}
-                                        </h3>
+                                        <div className="flex items-center gap-2 min-w-0 mb-0.5">
+                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight truncate text-foreground">
+                                            {track.title}
+                                          </h3>
+                                          {(track.year || track.release_year) && (
+                                            <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                                              {track.year || track.release_year}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
+                                          <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal truncate w-full text-right mt-0.5">
+                                            {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
+                                          </p>
+                                        )}
                                         <div className="flex items-center gap-2 justify-start">
                                           {track.duration && (
                                             <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400">
