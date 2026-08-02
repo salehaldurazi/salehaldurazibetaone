@@ -1161,7 +1161,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                 {/* زر تبديل العرض (قائمة / شبكة) */}
                 <button
                   onClick={() => setViewMode((prev) => (prev === "list" ? "grid" : "list"))}
-                  className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
+                  className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                   title={viewMode === "list" ? "عرض الشبكة" : "عرض القائمة"}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
@@ -1175,7 +1175,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                 {/* زر التشغيل العشوائي التكيفي بالسياق الحالي */}
                 <button
                   onClick={handleShufflePlay}
-                  className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
+                  className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                   title={getShuffleTitle()}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
@@ -1186,7 +1186,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer text-primary"
+                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                       title={getSortLabel()}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
@@ -1197,7 +1197,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <DropdownMenuContent
                     align="center"
                     sideOffset={12}
-                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-48 rounded-[2rem] p-2 shadow-[0_30px_70px_rgba(0,0,0,0.2)] dark:shadow-[0_30px_70px_rgba(0,0,0,0.9)] z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
+                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-48 rounded-[2rem] p-2 z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
 
@@ -1226,7 +1226,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         <span className="text-xs font-bold tracking-wide">{option.label}</span>
 
                         {sortBy === option.id && (
-                          <div className="absolute left-4 w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(197,160,89,0.8)]" />
+                          <div className="absolute left-4 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -1262,7 +1262,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setCurrentFolderView(null)}
-                        className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.3)] text-primary text-xs font-bold cursor-pointer"
+                        className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary text-xs font-bold cursor-pointer"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                         <ArrowRight className="w-3.5 h-3.5 relative z-10" />
@@ -1341,7 +1341,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   <Card className={cn(
                                     "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
                                     highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                                   )} dir="rtl">
                                     {/* Decorative background glow */}
                                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
@@ -1463,7 +1463,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                               <Card className={cn(
                                 "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] shadow-2xl text-start",
                                 highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                                "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                               )} dir="rtl">
                                 <CardContent className="p-0" dir="rtl">
                                   <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-2 sm:gap-4 flex-nowrap" dir="rtl">
@@ -1594,7 +1594,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   onClick={() => setCurrentFolderView(folder)}
                                   className="w-full text-start group"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] shadow-2xl cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] shadow-2xl cursor-pointer">
                                     <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4" dir="rtl">
                                       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                         {/* Glowing gold icon */}
@@ -1690,7 +1690,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                           onClick={handleShowAll}
                           whileHover={{ scale: 1.03, translateY: -2 }}
                           whileTap={{ scale: 0.98 }}
-                          className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 shadow-[0_5px_20px_rgba(0,0,0,0.3)] text-primary text-xs font-bold cursor-pointer"
+                          className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary text-xs font-bold cursor-pointer"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                           <span className="relative z-10">عرض الكل</span>
@@ -1893,7 +1893,7 @@ function AlbumGrid({
                   <Card className={cn(
                     "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
                     highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
-                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                   )} dir="rtl">
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
@@ -1974,7 +1974,7 @@ function AlbumGrid({
                 <Card className={cn(
                   "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start",
                   highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
-                  "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse shadow-[0_0_30px_rgba(197,160,89,0.4)]"
+                  "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                 )} dir="rtl">
                   <CardContent className="p-0" dir="rtl">
                     {/* ترويسة الألبوم */}
@@ -2060,7 +2060,7 @@ function AlbumGrid({
                                   className={cn(
                                     "flex items-center justify-between p-2 rounded-xl bg-foreground/5 hover:bg-primary/10 group/item transition-all border border-transparent hover:border-primary/5 gap-2 flex-row",
                                     highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                    "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse shadow-[0_0_20px_rgba(197,160,89,0.4)]"
+                                    "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse"
                                   )}
                                   dir="rtl"
                                 >
@@ -2181,7 +2181,7 @@ function AlbumGrid({
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.96, opacity: 0, y: -16 }}
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                  className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-auto max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain cursor-default"
+                  className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-auto max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain cursor-default"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Modal Background Glow */}
@@ -2251,7 +2251,7 @@ function AlbumGrid({
                           className={cn(
                             "flex items-center justify-between p-2 sm:p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-2 sm:gap-3 group/item",
                             highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                            "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse shadow-[0_0_20px_rgba(197,160,89,0.4)]"
+                            "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse"
                           )}
                         >
                           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
