@@ -101,7 +101,7 @@ export function Contact() {
             </div>
 
             {/* Main Info Box - Increased Padding */}
-            <div className="w-full bg-card/20 backdrop-blur-2xl border border-primary/10 p-8 md:p-12 rounded-[2.5rem] shadow-xl space-y-8 text-center hover:border-primary/20 transition-all duration-500">
+            <div className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 text-center relative overflow-hidden group">
               <p className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">
                 سواء كانت لديك استفسارات حول القصائد، أو طلبات لإقامة الفعاليات، أو رغبت فقط في إرسال دعواتكم، فنحن نرحب برسالتكم.
               </p>
@@ -117,7 +117,7 @@ export function Contact() {
             </div>
 
             {/* Social Media Box - Increased Padding */}
-            <div className="w-full bg-card/10 backdrop-blur-xl border border-white/5 p-6 md:p-8 rounded-[2.5rem] text-center space-y-4 hover:border-primary/10 transition-all duration-500">
+            <div className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 text-center relative overflow-hidden group">
               <span className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">تواصل عبر الشبكات الاجتماعية</span>
               <div className="flex items-center justify-center space-x-4 space-x-reverse">
                 {socialLinks.map((item, i) => (
@@ -137,12 +137,12 @@ export function Contact() {
 
           {/* Contact Form - Increased Padding and Spacing */}
           <FadeInSection delay={200} className="w-full">
-            <form onSubmit={handleSubmit} className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 shadow-[0_30px_80px_rgba(0,0,0,0.08)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.5)] text-right relative overflow-hidden group">
-              <div className="absolute -top-10 -left-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/20 transition-all duration-700" />
+            <form onSubmit={handleSubmit} className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 text-right relative overflow-hidden group">
+              <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full blur-3xl transition-all duration-700" />
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="md:text-xs uppercase text-foreground/40 mr-1">الاسم</label>
+                  <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">الاسم</label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -152,7 +152,7 @@ export function Contact() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="md:text-xs uppercase text-foreground/40 mr-1">البريد الإلكتروني</label>
+                  <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">البريد الإلكتروني</label>
                   <Input
                     type="email"
                     value={email}
@@ -163,9 +163,8 @@ export function Contact() {
                   />
                 </div>
               </div>
-
               <div className="space-y-1.5">
-                <label className="md:text-xs uppercase text-foreground/40 mr-1">الموضوع</label>
+                <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">الموضوع</label>
                 <Input
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
@@ -176,7 +175,7 @@ export function Contact() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="md:text-xs uppercase text-foreground/40 mr-1">الرسالة</label>
+                <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">الرسالة</label>
                 <Textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
