@@ -1111,7 +1111,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       <div className="container max-w-6xl px-6 mx-auto relative z-10">
         <FadeInSection className="text-center mb-8 space-y-4">
           <div className="flex justify-center mb-6">
-            <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 shadow-inner">
+            <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10">
               <Headphones className="w-8 h-8 text-primary" />
             </div>
           </div>
@@ -1127,7 +1127,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
               placeholder="ابحث عن ألبوم ، أو قصيدة ..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-11 h-12 bg-card/40 border-primary/10 focus:border-primary/40 rounded-full text-sm shadow-xl transition-all backdrop-blur-sm text-right text-foreground"
+              className="pr-11 h-12 bg-card/40 border-primary/10 focus:border-primary/40 rounded-full text-sm transition-all backdrop-blur-sm text-right text-foreground"
               dir="rtl"
             />
           </div>
@@ -1135,7 +1135,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           <Tabs defaultValue="sorrow" value={activeCategory} onValueChange={setActiveCategory} className="w-full">
             <div className="flex flex-col items-center gap-6">
               {/* تبويبات الفئات */}
-              <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 shadow-2xl overflow-hidden">
+              <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 overflow-hidden">
                 <TabsTrigger
                   value="supplications"
                   className="flex-1 rounded-full py-2.5 text-[11px] md:text-sm font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground hover:bg-foreground/5 whitespace-nowrap"
@@ -1269,7 +1269,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         <span className="relative z-10">رجوع</span>
                       </button>
                       <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-md">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                           {currentFolderView.folder_type === "albums_only" ? (
                             <FolderHeart className="w-4 h-4" />
                           ) : (
@@ -1339,7 +1339,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   className="flex"
                                 >
                                   <Card className={cn(
-                                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
+                                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
                                     highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
                                     "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                                   )} dir="rtl">
@@ -1363,19 +1363,19 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                           }));
                                           onPlay(mappedTrack, mappedPlaylist);
                                         }}
-                                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 cursor-pointer group/btn"
                                         title="تشغيل القصيدة"
                                       >
                                         <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                                       </button>
                                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
                                         {(track as any).status_label && (
-                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-primary/15 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-primary/15 shrink-0">
                                             {(track as any).status_label}
                                           </span>
                                         )}
                                         {(track.year || track.release_year) && (
-                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-foreground/10 shadow-sm shrink-0">
+                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-foreground/10 shrink-0">
                                             {track.year || track.release_year}
                                           </span>
                                         )}
@@ -1412,7 +1412,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                           <button
-                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer group/btn shrink-0"
                                             title="خيارات"
                                           >
                                             <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
@@ -1422,7 +1422,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         <DropdownMenuContent
                                           align="end"
                                           sideOffset={6}
-                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 shadow-2xl backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
+                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
                                         >
                                           <DropdownMenuItem
                                             onClick={() => handleAction("download", track)}
@@ -1461,7 +1461,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                               transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
                             >
                               <Card className={cn(
-                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] shadow-2xl text-start",
+                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] text-start",
                                 highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
                                 "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                               )} dir="rtl">
@@ -1483,7 +1483,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                           }));
                                           onPlay(mappedTrack, mappedPlaylist);
                                         }}
-                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 shadow-lg cursor-pointer group/btn"
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 cursor-pointer group/btn"
                                         title="تشغيل القصيدة"
                                       >
                                         <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
@@ -1494,7 +1494,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                             {track.title}
                                           </h3>
                                           {(track.year || track.release_year) && (
-                                            <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                                            <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shrink-0">
                                               {track.year || track.release_year}
                                             </span>
                                           )}
@@ -1594,11 +1594,11 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   onClick={() => setCurrentFolderView(folder)}
                                   className="w-full text-start group"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] shadow-2xl cursor-pointer">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] cursor-pointer">
                                     <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4" dir="rtl">
                                       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                         {/* Glowing gold icon */}
-                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0 shadow-lg">
+                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0">
                                           {isAlbumsOnly ? (
                                             <FolderHeart className="w-5 h-5" />
                                           ) : (
@@ -1891,7 +1891,7 @@ function AlbumGrid({
                   className="flex"
                 >
                   <Card className={cn(
-                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] shadow-xl flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
+                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
                     highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
                     "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                   )} dir="rtl">
@@ -1902,7 +1902,7 @@ function AlbumGrid({
                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
-                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 shadow-md cursor-pointer group/btn"
+                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 cursor-pointer group/btn"
                         title="تشغيل الألبوم كاملاً"
                       >
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
@@ -1910,11 +1910,11 @@ function AlbumGrid({
                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
 
                         {album.status_label && (
-                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shrink-0">
                             {album.status_label}
                           </span>
                         )}
-                        <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                        <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shrink-0">
                           {album.year}
                         </span>
                       </div>
@@ -1945,7 +1945,7 @@ function AlbumGrid({
                       {/* Minimalist expand icon button (No track count text) */}
                       <button
                         onClick={() => setExpandedAlbumId(album.id)}
-                        className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer shadow-sm group/btn shrink-0"
+                        className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer group/btn shrink-0"
                         title="تصفح القصائد"
                       >
                         <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-y-0.5 transition-transform" />
@@ -1972,7 +1972,7 @@ function AlbumGrid({
                 }}
               >
                 <Card className={cn(
-                  "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] shadow-2xl text-start",
+                  "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[2rem] text-start",
                   highlightedAlbumId && String(highlightedAlbumId) === String(album.id) && !highlightedTrackId &&
                   "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
                 )} dir="rtl">
@@ -1982,7 +1982,7 @@ function AlbumGrid({
                       <div className="flex items-center gap-3 sm:gap-4 text-start">
                         <button
                           onClick={() => handleAlbumPlay(album, idx)}
-                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 shadow-lg cursor-pointer group/btn"
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 cursor-pointer group/btn"
                           title="تشغيل الألبوم كاملاً"
                         >
                           <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
@@ -1994,11 +1994,11 @@ function AlbumGrid({
                           <div className="flex items-center gap-2 justify-start">
 
                             {album.status_label && (
-                              <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shadow-sm shrink-0">
+                              <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shrink-0">
                                 {album.status_label}
                               </span>
                             )}
-                            <p className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">
+                            <p className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shrink-0">
                               {album.year}
                             </p>
                           </div>
@@ -2068,7 +2068,7 @@ function AlbumGrid({
                                     <div className="flex items-center gap-3 flex-row">
                                       <Button
                                         onClick={() => handleTrackPlay(track, album)}
-                                        className="w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0 shadow-sm"
+                                        className="w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0"
                                       >
                                         <Play className="w-3.5 h-3.5 fill-current" />
                                       </Button>
@@ -2197,7 +2197,7 @@ function AlbumGrid({
                             albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
                           )
                         }
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all shadow-lg cursor-pointer shrink-0 group/playbtn"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all cursor-pointer shrink-0 group/playbtn"
                         title="تشغيل الألبوم كاملاً"
                       >
                         <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/playbtn:scale-110 transition-transform duration-300" />
@@ -2208,9 +2208,9 @@ function AlbumGrid({
                         </h3>
                         {/* Sleek RTL flex row for Year, Status Label & Stats */}
                         <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-foreground/70 flex-wrap mt-0.5">
-                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shadow-sm shrink-0">{selectedAlbumForGrid.year}</span>
+                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shrink-0">{selectedAlbumForGrid.year}</span>
                           {selectedAlbumForGrid.status_label && (
-                            <span className="inline-flex items-center bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold text-[9px] sm:text-[10px] border border-primary/15 shadow-sm">
+                            <span className="inline-flex items-center bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold text-[9px] sm:text-[10px] border border-primary/15">
                               {selectedAlbumForGrid.status_label}
                             </span>
                           )}
@@ -2257,7 +2257,7 @@ function AlbumGrid({
                           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                             <Button
                               onClick={() => handleTrackPlay(track, selectedAlbumForGrid)}
-                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0 shadow-sm"
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0"
                             >
                               <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
                             </Button>
