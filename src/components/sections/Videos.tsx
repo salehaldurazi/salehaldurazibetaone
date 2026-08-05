@@ -188,7 +188,7 @@ export function Videos() {
               className="w-full"
             >
               <div className="flex flex-col items-center w-full mb-8">
-                <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 shadow-2xl overflow-hidden">
+                <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 overflow-hidden">
                   {[
                     { value: "featured", label: "مختارات" },
                     { value: "popular", label: "الأكثر مشاهدة" },
@@ -228,7 +228,7 @@ export function Videos() {
 
                         return (
                           <FadeInSection key={vid.id} delay={idx * 100}>
-                            <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-2xl shadow-lg dark:shadow-2xl h-full flex flex-col text-right">
+                            <Card className="bg-card border border-border dark:border-white/10 hover:border-primary/40 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-xl sm:rounded-2xl dark:shadow-2xl h-full flex flex-col text-right">
                               <CardContent className="p-0 flex flex-col h-full">
 
                                 {/* 1. Video Thumbnail / Player Container */}
@@ -256,7 +256,7 @@ export function Videos() {
                                             e.stopPropagation();
                                             setActiveVideoId(null);
                                           }}
-                                          className="absolute top-2 left-2 sm:top-3 sm:left-3 p-1.5 rounded-full bg-black/80 hover:bg-black border border-white/20 text-white/90 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-lg z-20 cursor-pointer"
+                                          className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                           title="إغلاق التشغيل"
                                           aria-label="Close Video"
                                         >
@@ -295,7 +295,7 @@ export function Videos() {
 
                                         {/* Floating Sub-category Badge (Top-Right) */}
                                         {vid.sub_category && (
-                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/30 text-primary text-[7.5px] sm:text-[9px] md:text-[10px] font-bold tracking-wide shadow-md max-w-[90px] sm:max-w-none truncate">
+                                          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/65 dark:bg-black/75 backdrop-blur-xl border border-primary/30 text-primary text-[7.5px] sm:text-[9px] md:text-[10px] font-bold tracking-wide max-w-[90px] sm:max-w-none truncate">
                                             {vid.sub_category}
                                           </div>
                                         )}
@@ -327,7 +327,7 @@ export function Videos() {
                                     )}
                                   </div>
 
-                                  {/* 3 PERFECTLY CENTERED & IDENTICAL GLASSMORPHISM CIRCULAR BUTTONS */}
+                                  {/* 3 PERFECTLY CENTERED & IDENTICAL CIRCULAR ACTION BUTTONS MATCHING AUDIO LIBRARY */}
                                   <div
                                     className="mt-3.5 sm:mt-5 flex flex-row items-center justify-center gap-3 sm:gap-5 select-none w-full"
                                     onClick={(e) => e.stopPropagation()}
@@ -337,21 +337,21 @@ export function Videos() {
                                       href={watchUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer"
+                                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                       title="مشاهدة على يوتيوب"
                                       aria-label="Go to YouTube"
                                     >
-                                      <Youtube strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                                      <Youtube strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                                     </a>
 
                                     {/* MIDDLE: Share Circular Glass Button (Share) */}
                                     <button
                                       onClick={() => handleShare(vid.title, watchUrl)}
-                                      className="w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square bg-black/60 dark:bg-black/80 backdrop-blur-xl border border-primary/40 shadow-lg shadow-black/50 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer"
+                                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                       title="مشاركة الفيديو"
                                       aria-label="Share"
                                     >
-                                      <Share2 strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                                      <Share2 strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                                     </button>
 
                                     {/* LEFT: Play Circular Glass Button (Start Watching) */}
@@ -363,17 +363,17 @@ export function Videos() {
                                           setActiveVideoId(vid.id);
                                         }
                                       }}
-                                      className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full shrink-0 aspect-square backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shadow-lg ${isPlaying
-                                        ? "bg-red-500/20 border border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white"
-                                        : "bg-black/60 dark:bg-black/80 border border-primary/40 hover:border-primary hover:bg-primary/25 hover:shadow-[0_0_20px_rgba(197,160,89,0.4)] text-primary hover:text-amber-300"
+                                      className={`relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary ${isPlaying
+                                        ? "bg-red-500/10 dark:bg-red-500/20 border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/20"
+                                        : "relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                         }`}
                                       title={isPlaying ? "إغلاق التشغيل" : "تشغيل الفيديو"}
                                       aria-label="Start Watching"
                                     >
                                       {isPlaying ? (
-                                        <Square strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current" />
+                                        <Square strokeWidth={0.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                                       ) : (
-                                        <Play strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-primary fill-primary/30 translate-x-[-0.5px]" />
+                                        <Play strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 fill-amber-600/30 dark:fill-amber-400/30 translate-x-[-0.5px]" />
                                       )}
                                     </button>
                                   </div>
