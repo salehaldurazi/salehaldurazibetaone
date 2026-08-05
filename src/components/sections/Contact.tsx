@@ -108,7 +108,7 @@ export function Contact() {
 
               <div className="flex flex-col items-center gap-3">
                 <a href="mailto:info@salehaldirazi.com" className="flex flex-col items-center gap-3 text-primary hover:text-primary/80 transition-all group/mail">
-                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 group-hover/mail:bg-primary group-hover/mail:text-primary-foreground transition-all shadow-lg">
+                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 group-hover/mail:bg-primary group-hover/mail:text-primary-foreground transition-all">
                     <Mail className="w-4 h-4" />
                   </div>
                   <span className="text-xs md:text-sm tracking-wider font-bold">info@salehaldirazi.com</span>
@@ -118,7 +118,9 @@ export function Contact() {
 
             {/* Social Media Box - Increased Padding */}
             <div className="w-full space-y-5 bg-card/80 dark:bg-card/30 backdrop-blur-3xl p-8 md:p-12 rounded-[3rem] border border-border dark:border-primary/10 text-center relative overflow-hidden group">
-              <span className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">تواصل عبر الشبكات الاجتماعية</span>
+              <p className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">
+                تواصل عبر الشبكات الإجتماعية
+              </p>
               <div className="flex items-center justify-center space-x-4 space-x-reverse">
                 {socialLinks.map((item, i) => (
                   <a
@@ -126,7 +128,7 @@ export function Contact() {
                     href={item.href} // الآن سيتعرف على الرابط الموجود في الكائن
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3 rounded-xl border border-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-lg"
+                    className="p-3 rounded-xl border border-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                   >
                     <item.icon className="w-4 h-4" /> {/* استدعاء الأيقونة من الكائن */}
                   </a>
@@ -142,7 +144,7 @@ export function Contact() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">الاسم</label>
+                  <label className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">الإسم</label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -188,7 +190,7 @@ export function Contact() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold shadow-xl shadow-primary/10 transition-all uppercase text-[10px] md:text-xs mt-2 flex items-center justify-center"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold transition-all uppercase text-[10px] md:text-xs mt-2 flex items-center justify-center"
               >
                 {loading ? (
                   <>
@@ -212,7 +214,7 @@ export function Contact() {
           <FadeInSection delay={300} className="w-full">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {stats.map((stat, i) => (
-                <div key={i} className="bg-card/20 backdrop-blur-3xl border border-primary/10 hover:border-primary/40 rounded-[2rem] p-6 md:p-8 text-center transition-all duration-500 hover:-translate-y-1 shadow-lg">
+                <div key={i} className="bg-card/20 backdrop-blur-3xl border border-primary/10 hover:border-primary/40 rounded-[2rem] p-6 md:p-8 text-center transition-all duration-500 hover:-translate-y-1">
                   <h3 className="text-xl md:text-2xl font-bold text-primary mb-1">{stat.value}</h3>
                   <p className="text-xs md:text-sm text-foreground/60 leading-relaxed font-light max-w-2xl mx-auto">{stat.label}</p>
                 </div>
