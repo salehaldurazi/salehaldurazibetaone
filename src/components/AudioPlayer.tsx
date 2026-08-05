@@ -556,8 +556,8 @@ export function AudioPlayer({
                 <Button
                   onClick={togglePlay}
                   className={cn(
-                    "w-9 h-9 rounded-full transition-all duration-300 shadow-xl",
-                    "bg-primary text-primary-foreground hover:bg-white hover:text-primary"
+                    "relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary",
+                    "relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                   )}
                   title={isPlaying ? "إيقاف" : "تشغيل"}
                 >
