@@ -1570,7 +1570,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {/* ── Folder Cards Grid ── */}
                   {visibleFolders.length > 0 && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto" dir="rtl">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
                         <AnimatePresence mode="popLayout">
                           {visibleFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
@@ -1592,21 +1592,21 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                               >
                                 <button
                                   onClick={() => setCurrentFolderView(folder)}
-                                  className="w-full text-start group"
+                                  className="w-full text-start group h-full"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-[2rem] cursor-pointer">
-                                    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4" dir="rtl">
-                                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                        {/* Glowing gold icon */}
-                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] cursor-pointer h-full">
+                                    <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2 sm:gap-4 h-full" dir="rtl">
+                                      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0 flex-1">
+                                        {/* Glowing gold icon (hidden on mobile/small screens for full title space) */}
+                                        <div className="hidden sm:flex w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0">
                                           {isAlbumsOnly ? (
                                             <FolderHeart className="w-5 h-5" />
                                           ) : (
                                             <Music className="w-5 h-5" />
                                           )}
                                         </div>
-                                        <div className="min-w-0">
-                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors duration-300">
+                                        <div className="min-w-0 flex-1">
+                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground group-hover:text-primary transition-colors duration-300 whitespace-normal break-words leading-tight">
                                             {folder.name}
                                           </h3>
                                           <p className="text-[9px] sm:text-[10px] text-foreground/40 mt-0.5">
@@ -1618,7 +1618,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
                                       {/* Arrow indicator */}
-                                      <div className="w-8 h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
+                                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
                                         <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
                                       </div>
                                     </CardContent>
