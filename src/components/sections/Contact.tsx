@@ -108,7 +108,7 @@ export function Contact() {
 
               <div className="flex flex-col items-center gap-3">
                 <a href="mailto:info@salehaldirazi.com" className="flex flex-col items-center gap-3 text-primary hover:text-primary/80 transition-all group/mail">
-                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 group-hover/mail:bg-primary group-hover/mail:text-primary-foreground transition-all">
+                  <div className="relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary">
                     <Mail className="w-4 h-4" />
                   </div>
                   <span className="text-xs md:text-sm tracking-wider font-bold">info@salehaldirazi.com</span>
@@ -128,7 +128,7 @@ export function Contact() {
                     href={item.href} // الآن سيتعرف على الرابط الموجود في الكائن
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3 rounded-xl border border-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                    className="relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                   >
                     <item.icon className="w-4 h-4" /> {/* استدعاء الأيقونة من الكائن */}
                   </a>
