@@ -216,7 +216,7 @@ export function Videos() {
                       لا توجد مرئيات في هذا القسم حالياً
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6" dir="rtl">
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-2 sm:gap-3 md:gap-5" dir="rtl">
                       {groupedVideos[key].map((vid, idx) => {
                         const videoId = extractYouTubeId(vid.youtube_url);
                         const watchUrl = vid.youtube_url ?? (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "#");
@@ -256,7 +256,7 @@ export function Videos() {
                                             e.stopPropagation();
                                             setActiveVideoId(null);
                                           }}
-                                          className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
+                                          className="relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                           title="إغلاق التشغيل"
                                           aria-label="Close Video"
                                         >
@@ -337,21 +337,21 @@ export function Videos() {
                                       href={watchUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
+                                      className="relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                       title="مشاهدة على يوتيوب"
                                       aria-label="Go to YouTube"
                                     >
-                                      <Youtube strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                                      <Youtube strokeWidth={0.5} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
                                     </a>
 
                                     {/* MIDDLE: Share Circular Glass Button (Share) */}
                                     <button
                                       onClick={() => handleShare(vid.title, watchUrl)}
-                                      className="relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
+                                      className="relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                       title="مشاركة الفيديو"
                                       aria-label="Share"
                                     >
-                                      <Share2 strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                                      <Share2 strokeWidth={0.5} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
                                     </button>
 
                                     {/* LEFT: Play Circular Glass Button (Start Watching) */}
@@ -363,17 +363,17 @@ export function Videos() {
                                           setActiveVideoId(vid.id);
                                         }
                                       }}
-                                      className={`relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary ${isPlaying
+                                      className={`relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary ${isPlaying
                                         ? "bg-red-500/10 dark:bg-red-500/20 border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/20"
-                                        : "relative group overflow-hidden flex items-center justify-center w-12 h-12 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
+                                        : "relative group overflow-hidden flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 cursor-pointer text-primary"
                                         }`}
                                       title={isPlaying ? "إغلاق التشغيل" : "تشغيل الفيديو"}
                                       aria-label="Start Watching"
                                     >
                                       {isPlaying ? (
-                                        <Square strokeWidth={0.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                                        <Square strokeWidth={0.5} className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
                                       ) : (
-                                        <Play strokeWidth={0.5} className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 fill-amber-600/30 dark:fill-amber-400/30 translate-x-[-0.5px]" />
+                                        <Play strokeWidth={0.5} className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400 fill-amber-600/30 dark:fill-amber-400/30 translate-x-[-0.5px]" />
                                       )}
                                     </button>
                                   </div>
