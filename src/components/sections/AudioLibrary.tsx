@@ -1134,23 +1134,25 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                       <DropdownMenuContent
                         align="end"
-                        sideOffset={6}
-                        className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
+                        sideOffset={8}
+                        className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-44 rounded-[2rem] p-2 z-[200] animate-in fade-in zoom-in-95 duration-300 overflow-hidden relative"
                       >
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+
                         <DropdownMenuItem
                           onClick={() => handleAction("download", track)}
-                          className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
+                          className="flex-row-reverse gap-3 rounded-[1.4rem] py-3 px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
                         >
-                          <span>تحميل</span>
-                          <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <Download className="w-4 h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
+                          <span className="text-xs font-bold tracking-wide">تحميل</span>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
                           onClick={() => handleAction("share", track)}
-                          className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
+                          className="flex-row-reverse gap-3 rounded-[1.4rem] py-3 px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
                         >
-                          <span>مشاركة</span>
-                          <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <Share2 className="w-4 h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
+                          <span className="text-xs font-bold tracking-wide">مشاركة</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
