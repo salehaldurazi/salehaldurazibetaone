@@ -20,7 +20,7 @@ import {
   Plus, Edit2, Trash2, ExternalLink, Loader2, Search,
   CheckCircle2, RefreshCw, Eye, AlertTriangle, Link2,
   Youtube, Video, X, ChevronDown, ChevronRight, EyeOff,
-  Bell, Sparkles, ArrowRight, Folder, FolderOpen,
+  Bell, Sparkles, ArrowRight, Folder, FolderOpen, Volume2,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -78,6 +78,7 @@ interface AudioTrack {
   audio_url?: string | null;
   album_id?: number | null;
   folder_id?: number | null;
+  category?: string | null;
   duration?: string | null;
   order?: number | null;
   description?: string | null;
@@ -155,21 +156,42 @@ function safeDate(val: unknown): string {
   } catch { return "—"; }
 }
 
+function isSupplicationCategory(cat: string | null | undefined): boolean {
+  if (!cat) return false;
+  const c = String(cat).trim().toLowerCase();
+  return c === "supplications" || c === "duas" || c === "dua" || c === "الأدعية" || c === "ادعية";
+}
+
+function filterAudioTrack(t: AudioTrack, trackFilterType: string, searchQuery: string): boolean {
+  if (searchQuery.trim()) {
+    const q = normalizeArabic(searchQuery);
+    const titleMatch = normalizeArabic(safeStr(t.title)).includes(q);
+    const urlMatch = safeStr(t.audio_url).toLowerCase().includes(searchQuery.toLowerCase());
+    if (!titleMatch && !urlMatch) return false;
+  }
+  if (trackFilterType === "supplications") return isSupplicationCategory(t.category);
+  if (trackFilterType === "albums") return t.album_id != null;
+  if (trackFilterType === "folders") return t.folder_id != null && t.album_id == null;
+  if (trackFilterType === "standalone") return t.album_id == null && t.folder_id == null && !isSupplicationCategory(t.category);
+  return true;
+}
+
 function getCategoryLabel(cat: string | null | undefined): string {
+  if (isSupplicationCategory(cat)) return "الأدعية والمناجاة";
   switch (cat) {
     case "sorrow": return "الأحزان (عزاء)";
-    case "supplications": return "الأدعية والمناجاة";
     case "joy": return "الأفراح والمواليد";
     default: return safeStr(cat, "غير مصنف");
   }
 }
 
 function getCategoryColor(cat: string | null | undefined): string {
+  if (isSupplicationCategory(cat)) {
+    return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/40";
+  }
   switch (cat) {
     case "sorrow":
       return "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/40";
-    case "supplications":
-      return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/40";
     case "joy":
       return "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/40";
     default:
@@ -265,6 +287,23 @@ export default function AdminDashboard() {
   const [editAudioReleaseYear, setEditAudioReleaseYear] = useState("");
   const [editAudioDescription, setEditAudioDescription] = useState("");
 
+  // ── Sub-tab & filters for management ─────────
+  const [managementSubTab, setManagementSubTab] = useState<"folders_albums" | "all_audios">("folders_albums");
+  const [trackFilterType, setTrackFilterType] = useState<string>("all");
+
+  // ── Add/Edit Audio Track Form (Direct URL) ──
+  const [audioModalOpen, setAudioModalOpen] = useState(false);
+  const [audioTrackTitle, setAudioTrackTitle] = useState("");
+  const [audioTrackUrl, setAudioTrackUrl] = useState("");
+  const [audioAssignmentType, setAudioAssignmentType] = useState<"supplications" | "album" | "folder" | "standalone">("supplications");
+  const [audioTargetAlbumId, setAudioTargetAlbumId] = useState<string>("none");
+  const [audioTargetFolderId, setAudioTargetFolderId] = useState<string>("none");
+  const [audioCategory, setAudioCategory] = useState("sorrow");
+  const [audioDuration, setAudioDuration] = useState("");
+  const [audioOrder, setAudioOrder] = useState("1");
+  const [audioReleaseYear, setAudioReleaseYear] = useState("");
+  const [audioDescription, setAudioDescription] = useState("");
+
   // ── Video form ───────────────────────────────
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
@@ -311,7 +350,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("audios")
-        .select(`id, title, audio_url, album_id, folder_id, duration, "order", description, release_year, is_visible, created_at`)
+        .select(`id, title, audio_url, album_id, folder_id, category, duration, "order", description, release_year, is_visible, created_at`)
         .order("order", { ascending: true });
       if (error) {
         toast({ title: "تحذير – القصائد", description: error.message, variant: "destructive" });
@@ -673,57 +712,137 @@ export default function AdminDashboard() {
   }
 
   // ─────────────────────────────────────────────
-  // EDIT SINGLE POEM
+  // SINGLE AUDIO TRACK CRUD (Direct Link / URL)
   // ─────────────────────────────────────────────
+  function openCreateAudioModal(defaultAlbumId?: number, defaultFolderId?: number) {
+    setEditingAudio(null);
+    setAudioTrackTitle("");
+    setAudioTrackUrl("");
+    if (defaultAlbumId) {
+      setAudioAssignmentType("album");
+      setAudioTargetAlbumId(String(defaultAlbumId));
+      setAudioTargetFolderId("none");
+    } else if (defaultFolderId) {
+      setAudioAssignmentType("folder");
+      setAudioTargetFolderId(String(defaultFolderId));
+      setAudioTargetAlbumId("none");
+    } else {
+      setAudioAssignmentType("supplications");
+      setAudioTargetAlbumId("none");
+      setAudioTargetFolderId("none");
+    }
+    setAudioCategory("sorrow");
+    setAudioDuration("");
+    setAudioOrder(String(audios.length + 1));
+    setAudioReleaseYear(new Date().getFullYear().toString());
+    setAudioDescription("");
+    setAudioModalOpen(true);
+  }
+
   function openEditPoemModal(audio: AudioTrack) {
     setEditingAudio(audio);
-    setEditAudioTitle(safeStr(audio.title, ""));
-    setEditAudioUrl(safeStr(audio.audio_url, ""));
-    setEditAudioOrder(audio.order != null ? String(audio.order) : "0");
-    setEditAudioAlbumId(audio.album_id ? String(audio.album_id) : "none");
-    setEditAudioFolderId(audio.folder_id ? String(audio.folder_id) : "none");
-    setEditAudioDuration(safeStr(audio.duration, ""));
-    setEditAudioReleaseYear(audio.release_year != null ? String(audio.release_year) : "");
-    setEditAudioDescription(safeStr(audio.description, ""));
-    setEditPoemModalOpen(true);
-  }
-  async function handleSaveEditPoem(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingAudio) return;
-    if (!editAudioTitle.trim() || !editAudioUrl.trim()) {
-      toast({ title: "خطأ", description: "العنوان والرابط مطلوبان.", variant: "destructive" }); return;
-    }
-    const albumIdVal = editAudioAlbumId && editAudioAlbumId !== "none" ? parseInt(editAudioAlbumId, 10) : null;
-    const folderIdVal = editAudioFolderId && editAudioFolderId !== "none" ? parseInt(editAudioFolderId, 10) : null;
-
-    const orderNum = parseInt(editAudioOrder, 10);
-    const yearNum = editAudioReleaseYear ? parseInt(editAudioReleaseYear, 10) : NaN;
-    const payload: Record<string, any> = {
-      title: editAudioTitle.trim(),
-      audio_url: editAudioUrl.trim(),
-      duration: editAudioDuration.trim() || null,
-      order: isNaN(orderNum) ? 0 : orderNum,
-      release_year: !isNaN(yearNum) ? yearNum : null,
-      description: editAudioDescription.trim() || null,
-    };
-    // Only set album_id if valid; otherwise omit to avoid NOT NULL violations
-    if (albumIdVal && !isNaN(albumIdVal)) {
-      payload.album_id = albumIdVal;
+    setAudioTrackTitle(safeStr(audio.title, ""));
+    setAudioTrackUrl(safeStr(audio.audio_url, ""));
+    if (isSupplicationCategory(audio.category)) {
+      setAudioAssignmentType("supplications");
+      setAudioTargetAlbumId("none");
+      setAudioTargetFolderId("none");
+    } else if (audio.album_id) {
+      setAudioAssignmentType("album");
+      setAudioTargetAlbumId(String(audio.album_id));
+      setAudioTargetFolderId("none");
+    } else if (audio.folder_id) {
+      setAudioAssignmentType("folder");
+      setAudioTargetFolderId(String(audio.folder_id));
+      setAudioTargetAlbumId("none");
     } else {
-      payload.album_id = null;
+      setAudioAssignmentType("standalone");
+      setAudioTargetAlbumId("none");
+      setAudioTargetFolderId("none");
     }
-    // Set folder_id (nullable column, safe to set null)
-    payload.folder_id = folderIdVal;
+    setAudioCategory(audio.category ?? "sorrow");
+    setAudioDuration(safeStr(audio.duration, ""));
+    setAudioOrder(audio.order != null ? String(audio.order) : "1");
+    setAudioReleaseYear(audio.release_year != null ? String(audio.release_year) : "");
+    setAudioDescription(safeStr(audio.description, ""));
+    setAudioModalOpen(true);
+  }
+
+  async function handleSaveAudioTrack(e: React.FormEvent) {
+    e.preventDefault();
+    if (!audioTrackTitle.trim() || !audioTrackUrl.trim()) {
+      toast({ title: "خطأ", description: "عنوان المقطع ورابط الصوت المباشر مطلوبان.", variant: "destructive" });
+      return;
+    }
+
+    const orderNum = parseInt(audioOrder, 10);
+    const yearNum = audioReleaseYear ? parseInt(audioReleaseYear, 10) : NaN;
+
+    let albumIdVal: number | null = null;
+    let folderIdVal: number | null = null;
+    let categoryVal: string | null = null;
+
+    if (audioAssignmentType === "supplications") {
+      categoryVal = "supplications";
+      albumIdVal = null;
+      folderIdVal = null;
+    } else if (audioAssignmentType === "album") {
+      const albId = parseInt(audioTargetAlbumId, 10);
+      albumIdVal = !isNaN(albId) ? albId : null;
+      folderIdVal = null;
+      const matchedAlbum = albums.find(a => a.id === albumIdVal);
+      categoryVal = matchedAlbum?.category ?? "sorrow";
+    } else if (audioAssignmentType === "folder") {
+      const fId = parseInt(audioTargetFolderId, 10);
+      folderIdVal = !isNaN(fId) ? fId : null;
+      albumIdVal = null;
+      const matchedFolder = folders.find(f => f.id === folderIdVal);
+      categoryVal = matchedFolder?.category ?? "sorrow";
+    } else {
+      categoryVal = audioCategory || "sorrow";
+      albumIdVal = null;
+      folderIdVal = null;
+    }
+
+    const payload: Record<string, any> = {
+      title: audioTrackTitle.trim(),
+      audio_url: audioTrackUrl.trim(),
+      category: categoryVal,
+      album_id: albumIdVal,
+      folder_id: folderIdVal,
+      duration: audioDuration.trim() || null,
+      order: isNaN(orderNum) ? 1 : orderNum,
+      release_year: !isNaN(yearNum) ? yearNum : null,
+      description: audioDescription.trim() || null,
+    };
+
     setActionLoading(true);
     try {
-      const { error } = await supabase.from("audios").update(payload).eq("id", editingAudio.id);
-      if (error) throw error;
-      toast({ title: "✓ تم التحديث", description: "تم تحديث بيانات القصيدة." });
-      setEditPoemModalOpen(false);
+      if (editingAudio) {
+        const { error } = await supabase.from("audios").update(payload).eq("id", editingAudio.id);
+        if (error) throw error;
+        toast({ title: "✓ تم التحديث", description: "تم تحديث بيانات المقطع الصوتي." });
+      } else {
+        const { error } = await supabase.from("audios").insert([{ ...payload, is_visible: true }]);
+        if (error) throw error;
+        toast({ title: "✓ تم الإضافة", description: "تمت إضافة المقطع الصوتي بنجاح." });
+      }
+      setAudioModalOpen(false);
       await fetchData();
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("library-data-updated"));
+      }
     } catch (err: any) {
-      toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
-    } finally { setActionLoading(false); }
+      console.error("[Admin handleSaveAudioTrack] Error:", err);
+      toast({
+        title: "خطأ في حفظ المقطع الصوتي",
+        description: err.message || "حدث خطأ أثناء الحفظ.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   async function handleRemovePoemFromFolder(poem: AudioTrack) {
@@ -876,6 +995,10 @@ export default function AdminDashboard() {
       setDeleteTarget(null);
       if (messageModalOpen) setMessageModalOpen(false);
       await fetchData();
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("library-data-updated"));
+      }
     } catch (err: any) {
       toast({ title: "خطأ في الحذف", description: err.message, variant: "destructive" });
     } finally { setActionLoading(false); }
@@ -1000,7 +1123,16 @@ export default function AdminDashboard() {
 
           {/* Action buttons on tab switch */}
           {activeTab === "management" && (
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+              <Button
+                onClick={() => openCreateAudioModal()}
+                size="sm"
+                className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4" />
+                <span>إضافة مقطع صوتي</span>
+              </Button>
+
               <Button
                 onClick={openCreateFolderModal}
                 size="sm"
@@ -1014,7 +1146,8 @@ export default function AdminDashboard() {
               <Button
                 onClick={() => openCreateAlbumModal()}
                 size="sm"
-                className="h-9 px-4 text-xs font-bold rounded-xl shadow-sm gap-1.5"
+                variant="outline"
+                className="h-9 px-4 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 <span>ألبوم جديد</span>
@@ -1152,419 +1285,589 @@ export default function AdminDashboard() {
             {activeTab === "management" && (
               <div className="space-y-6">
 
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/40" />
-                  <Input
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="البحث في الألبومات بالنص أو السنة..."
-                    className="pr-10 h-11 text-xs bg-card border-border rounded-2xl text-right"
-                  />
-                  {searchQuery && (
+                {/* Sub-Nav Bar & Search & Category Filter */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border rounded-2xl p-2 shadow-sm">
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
                     <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
+                      onClick={() => setManagementSubTab("folders_albums")}
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        managementSubTab === "folders_albums"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-foreground/60 hover:text-foreground hover:bg-muted"
+                      }`}
                     >
-                      <X className="w-4 h-4" />
+                      <FolderHeart className="w-3.5 h-3.5" />
+                      <span>الألبومات والمجلدات ({albums.length + folders.length})</span>
                     </button>
-                  )}
-                </div>
 
-                {/* ── FOLDERS SECTION ── */}
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
-                    <div className="flex items-center gap-2">
-                      <Folder className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">المجلدات المُخصصة</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/15">{folders.length}</span>
-                    </div>
-                    <Button
-                      onClick={openCreateFolderModal}
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2.5 text-[10px] font-bold rounded-lg border-primary/30 text-primary gap-1"
+                    <button
+                      onClick={() => setManagementSubTab("all_audios")}
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        managementSubTab === "all_audios"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-foreground/60 hover:text-foreground hover:bg-muted"
+                      }`}
                     >
-                      <Plus className="w-3 h-3" /> مجلد جديد
-                    </Button>
+                      <Music className="w-3.5 h-3.5" />
+                      <span>جميع المقاطع الصوتية ({audios.length})</span>
+                    </button>
                   </div>
 
-                  {folders.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-foreground/40">
-                      لا توجد مجلدات بعد. أنشئ مجلداً لتجميع الألبومات أو القصائد.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border/40 p-2 space-y-1.5">
-                      {folders.map(folder => {
-                        const isVisible = folder.is_visible !== false;
-                        const folderAlbums = albums.filter(a => a.folder_id === folder.id);
-                        const folderQasaed = audios.filter(a => a.folder_id === folder.id);
-                        const isAlbumsOnly = folder.folder_type === "albums_only";
-                        const isFolderExpanded = expandedFolders.has(folder.id);
-
-                        return (
-                          <div
-                            key={folder.id}
-                            className={`rounded-xl bg-card border transition-all ${
-                              isVisible ? "border-border/50" : "border-border/30 opacity-65"
-                            } ${isFolderExpanded ? "ring-1 ring-primary/15" : ""}`}
-                          >
-                            <div className="flex items-center justify-between p-3 gap-2">
-                              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleFolderExpand(folder.id)}
-                                  className="p-1 rounded-lg shrink-0 text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors"
-                                  title={isFolderExpanded ? "إغلاق محتويات المجلد" : "عرض محتويات المجلد"}
-                                >
-                                  {isFolderExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                </button>
-                                <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                                  {isAlbumsOnly ? <FolderHeart className="w-4 h-4" /> : <Music className="w-4 h-4" />}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-semibold text-xs text-foreground truncate">{folder.name}</span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${getCategoryColor(folder.category)}`}>
-                                      {getCategoryLabel(folder.category)}
-                                    </span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${
-                                      isAlbumsOnly ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                    }`}>
-                                      {isAlbumsOnly ? "مجلد ألبومات" : "مجلد قصائد"}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-foreground/40 mt-0.5">
-                                    {isAlbumsOnly ? `${folderAlbums.length} ألبوم` : `${folderQasaed.length} قصيدة`}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* 3-Column Circle Action Controls Layout */}
-                              <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
-                                {isAlbumsOnly ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openCreateAlbumModal(folder.id)}
-                                    className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                    title="إضافة ألبوم للمجلد"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => openAddPoemForFolder(folder.id)}
-                                    className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                    title="إضافة قصيدة للمجلد"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => openEditFolderModal(folder)}
-                                  className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                  title="تعديل المجلد"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => requestDelete("folder", folder.id, folder.name)}
-                                  className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                  title="حذف المجلد"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                                <VisibilityToggle
-                                  checked={isVisible}
-                                  onCheckedChange={() => handleToggleFolderVisibility(folder)}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Expanded Folder Contents */}
-                            {isFolderExpanded && (
-                              <div className="border-t border-border/40 p-3 bg-muted/20 space-y-2">
-                                {isAlbumsOnly ? (
-                                  folderAlbums.length === 0 ? (
-                                    <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد ألبومات في هذا المجلد بعد.</p>
-                                  ) : (
-                                    <div className="space-y-1.5">
-                                      {folderAlbums.map(alb => (
-                                        <div key={alb.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/40 text-xs">
-                                          <div className="flex items-center gap-2 min-w-0">
-                                            <FolderHeart className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-                                            <span className="font-semibold text-foreground truncate">{safeStr(alb.title)}</span>
-                                            {alb.year && <span className="text-[10px] font-mono text-foreground/40">({alb.year})</span>}
-                                          </div>
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                            <button
-                                              type="button"
-                                              onClick={() => openEditAlbumModal(alb)}
-                                              className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center"
-                                              title="تعديل الألبوم"
-                                            >
-                                              <Edit2 className="w-3 h-3" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )
-                                ) : (
-                                  folderQasaed.length === 0 ? (
-                                    <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد قصائد في هذا المجلد بعد.</p>
-                                  ) : (
-                                    <div className="space-y-1.5">
-                                      {folderQasaed.map(poem => {
-                                        const poemVisible = poem.is_visible !== false;
-                                        return (
-                                          <div
-                                            key={poem.id}
-                                            className={`flex items-center justify-between p-2.5 rounded-xl bg-card border border-border/40 text-xs ${
-                                              poemVisible ? "" : "opacity-50"
-                                            }`}
-                                          >
-                                            <div className="min-w-0 flex-1 space-y-0.5">
-                                              <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-mono text-[10px] text-foreground/30 w-4 text-center shrink-0">
-                                                  {poem.order ?? "—"}
-                                                </span>
-                                                <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-                                                <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
-                                                {poem.release_year && (
-                                                  <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary px-1.5 py-0.2 rounded-full border border-primary/20">
-                                                    سنة {poem.release_year}
-                                                  </span>
-                                                )}
-                                                {poem.duration && (
-                                                  <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
-                                                )}
-                                              </div>
-                                              {poem.description && (
-                                                <p className="text-[11px] text-foreground/50 line-clamp-1 pr-6">
-                                                  {poem.description}
-                                                </p>
-                                              )}
-                                            </div>
-
-                                            {/* Action Controls */}
-                                            <div className="flex items-center gap-1.5 shrink-0 me-1">
-                                              <button
-                                                type="button"
-                                                onClick={() => openEditPoemModal(poem)}
-                                                className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center transition-all hover:scale-110"
-                                                title="تعديل القصيدة والبيانات"
-                                              >
-                                                <Edit2 className="w-3 h-3" />
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemovePoemFromFolder(poem)}
-                                                className="w-7 h-7 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/25 text-amber-500 flex items-center justify-center transition-all hover:scale-110"
-                                                title="إزالة القصيدة من هذا المجلد"
-                                              >
-                                                <X className="w-3 h-3" />
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
-                                                className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center transition-all hover:scale-110"
-                                                title="حذف القصيدة نهائياً"
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </button>
-                                              <VisibilityToggle
-                                                checked={poemVisible}
-                                                onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
-                                              />
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* ── Albums List Section ── */}
-                {filteredAlbums.length === 0 ? (
-                  <div className="bg-card border border-border rounded-2xl py-16 text-center space-y-3">
-                    <FolderHeart className="w-10 h-10 text-foreground/15 mx-auto" />
-                    <p className="text-sm text-foreground/40">
-                      {searchQuery ? "لا توجد نتائج مطابقة." : "لا توجد ألبومات. أضف ألبومك الأول!"}
-                    </p>
-                    {!searchQuery && (
-                      <Button onClick={() => openCreateAlbumModal()} size="sm" className="rounded-xl">
-                        <Plus className="w-3.5 h-3.5 ml-1.5" /> ألبوم جديد
-                      </Button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {managementSubTab === "all_audios" && (
+                      <Select value={trackFilterType} onValueChange={setTrackFilterType}>
+                        <SelectTrigger className="h-9 text-xs bg-muted/40 border-border rounded-xl text-right min-w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="all">جميع الفئات</SelectItem>
+                          <SelectItem value="supplications">الأدعية والمناجاة</SelectItem>
+                          <SelectItem value="albums">مقاطع الألبومات</SelectItem>
+                          <SelectItem value="folders">مقاطع المجلدات</SelectItem>
+                          <SelectItem value="standalone">مقاطع مستقلة</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
-                  </div>
-                ) : filteredAlbums.map(album => {
-                  const albumPoems = getAlbumPoems(album.id);
-                  const isExpanded = expandedAlbums.has(album.id);
-                  const isVisible = album.is_visible !== false;
-                  const parentFolder = folders.find(f => f.id === album.folder_id);
 
-                  return (
-                    <div key={album.id}
-                      className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${
-                        isVisible ? "border-border" : "border-border/50 opacity-65"
-                      } ${isExpanded ? "ring-1 ring-primary/15" : ""}`}
-                    >
-                      {/* ── Album header row ── */}
-                      <div className={`flex items-center gap-2 px-4 py-3 ${isExpanded ? "border-b border-border bg-muted/20" : ""}`}>
-
-                        {/* Expand toggle (left icon + name) */}
+                    <div className="relative flex-1 sm:w-64">
+                      <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-foreground/40" />
+                      <Input
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="البحث بالنص أو السنة..."
+                        className="pr-9 h-9 text-xs bg-muted/40 border-border rounded-xl text-right"
+                      />
+                      {searchQuery && (
                         <button
-                          onClick={() => toggleAlbumExpand(album.id)}
-                          className="flex items-center gap-2.5 flex-1 min-w-0 text-right group"
-                          aria-expanded={isExpanded}
+                          onClick={() => setSearchQuery("")}
+                          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground"
                         >
-                          <div className={`p-1 rounded-lg shrink-0 transition-colors ${
-                            isExpanded ? "bg-primary/10 text-primary" : "text-foreground/35 group-hover:text-primary group-hover:bg-primary/8"
-                          }`}>
-                            {isExpanded
-                              ? <ChevronDown className="w-4 h-4" />
-                              : <ChevronRight className="w-4 h-4" />}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-sm font-semibold leading-tight ${isVisible ? "text-foreground" : "text-foreground/40"}`}>
-                                {safeStr(album.title)}
-                              </span>
-                              {album.year && (
-                                <span className="text-[10px] font-mono text-foreground/30">{album.year}</span>
-                              )}
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getCategoryColor(album.category)}`}>
-                                {getCategoryLabel(album.category)}
-                              </span>
-                              {parentFolder && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-                                  <Folder className="w-2.5 h-2.5" />
-                                  {parentFolder.name}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-foreground/35 mt-0.5 flex items-center gap-2">
-                              <span>{albumPoems.length} قصيدة</span>
-                              {!isVisible && <span className="text-foreground/25">· مخفي</span>}
-                            </p>
-                          </div>
+                          <X className="w-3.5 h-3.5" />
                         </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                        {/* 3-Column Circle Action Controls Layout */}
-                        <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => openAddPoemsForAlbum(album.id)}
-                            className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                            title="إضافة قصيدة للألبوم"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openEditAlbumModal(album)}
-                            className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                            title="تعديل الألبوم"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => requestDelete("album", album.id, safeStr(album.title))}
-                            className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                            title="حذف الألبوم"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <VisibilityToggle
-                            checked={isVisible}
-                            onCheckedChange={() => handleToggleVisibility("albums", album.id, isVisible)}
-                          />
+                {/* ── SUB-TAB 1: FOLDERS & ALBUMS ── */}
+                {managementSubTab === "folders_albums" && (
+                  <div className="space-y-6">
+                    {/* Folders Section */}
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+                        <div className="flex items-center gap-2">
+                          <Folder className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-semibold text-foreground">المجلدات المُخصصة</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/15">{folders.length}</span>
                         </div>
+                        <Button
+                          onClick={openCreateFolderModal}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2.5 text-[10px] font-bold rounded-lg border-primary/30 text-primary gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> مجلد جديد
+                        </Button>
                       </div>
 
-                      {/* ── Poems (expanded) ── */}
-                      {isExpanded && (
-                        <div>
-                          {albumPoems.length === 0 ? (
-                            <div className="py-8 text-center space-y-2">
-                              <p className="text-xs text-foreground/40">لا توجد قصائد في هذا الألبوم بعد.</p>
-                              <Button
-                                size="sm" variant="outline"
-                                onClick={() => openAddPoemsForAlbum(album.id)}
-                                className="h-7 text-[11px] rounded-lg border-primary/25 text-primary"
-                              >
-                                <Plus className="w-3 h-3 ml-1" /> إضافة قصائد
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="divide-y divide-border/40 p-2 space-y-1.5">
-                              {albumPoems.map(poem => {
-                                const poemVisible = poem.is_visible !== false;
-                                return (
-                                  <div
-                                    key={poem.id}
-                                    className={`flex items-center justify-between p-2.5 rounded-xl bg-card/60 border border-border/40 text-xs transition-opacity ${
-                                      poemVisible ? "" : "opacity-50"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="font-mono text-[10px] text-foreground/30 w-5 text-center shrink-0">
-                                        {poem.order ?? "—"}
-                                      </span>
-                                      <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-                                      <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
-                                      {poem.duration && (
-                                        <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
-                                      )}
-                                    </div>
+                      {folders.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-foreground/40">
+                          لا توجد مجلدات بعد. أنشئ مجلداً لتجميع الألبومات أو القصائد.
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/40 p-2 space-y-1.5">
+                          {folders.map(folder => {
+                            const isVisible = folder.is_visible !== false;
+                            const folderAlbums = albums.filter(a => a.folder_id === folder.id);
+                            const folderQasaed = audios.filter(a => a.folder_id === folder.id);
+                            const isAlbumsOnly = folder.folder_type === "albums_only";
+                            const isFolderExpanded = expandedFolders.has(folder.id);
 
-                                    {/* 3-Column Circle Action Controls Layout */}
-                                    <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => openEditPoemModal(poem)}
-                                        className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                        title="تعديل القصيدة"
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
-                                        className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
-                                        title="حذف القصيدة"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                      <VisibilityToggle
-                                        checked={poemVisible}
-                                        onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
-                                      />
+                            return (
+                              <div
+                                key={folder.id}
+                                className={`rounded-xl bg-card border transition-all ${
+                                  isVisible ? "border-border/50" : "border-border/30 opacity-65"
+                                } ${isFolderExpanded ? "ring-1 ring-primary/15" : ""}`}
+                              >
+                                <div className="flex items-center justify-between p-3 gap-2">
+                                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleFolderExpand(folder.id)}
+                                      className="p-1 rounded-lg shrink-0 text-foreground/35 hover:text-primary hover:bg-primary/10 transition-colors"
+                                      title={isFolderExpanded ? "إغلاق محتويات المجلد" : "عرض محتويات المجلد"}
+                                    >
+                                      {isFolderExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                    </button>
+                                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                                      {isAlbumsOnly ? <FolderHeart className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-semibold text-xs text-foreground truncate">{folder.name}</span>
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${getCategoryColor(folder.category)}`}>
+                                          {getCategoryLabel(folder.category)}
+                                        </span>
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${
+                                          isAlbumsOnly ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                        }`}>
+                                          {isAlbumsOnly ? "مجلد ألبومات" : "مجلد قصائد"}
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-foreground/40 mt-0.5">
+                                        {isAlbumsOnly ? `${folderAlbums.length} ألبوم` : `${folderQasaed.length} قصيدة`}
+                                      </p>
                                     </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
+
+                                  <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
+                                    {isAlbumsOnly ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openCreateAlbumModal(folder.id)}
+                                        className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                        title="إضافة ألبوم للمجلد"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => openCreateAudioModal(undefined, folder.id)}
+                                        className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                        title="إضافة مقطع صوتي للمجلد"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditFolderModal(folder)}
+                                      className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                      title="تعديل المجلد"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => requestDelete("folder", folder.id, folder.name)}
+                                      className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                      title="حذف المجلد"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <VisibilityToggle
+                                      checked={isVisible}
+                                      onCheckedChange={() => handleToggleFolderVisibility(folder)}
+                                    />
+                                  </div>
+                                </div>
+
+                                {isFolderExpanded && (
+                                  <div className="border-t border-border/40 p-3 bg-muted/20 space-y-2">
+                                    {isAlbumsOnly ? (
+                                      folderAlbums.length === 0 ? (
+                                        <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد ألبومات في هذا المجلد بعد.</p>
+                                      ) : (
+                                        <div className="space-y-1.5">
+                                          {folderAlbums.map(alb => (
+                                            <div key={alb.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/40 text-xs">
+                                              <div className="flex items-center gap-2 min-w-0">
+                                                <FolderHeart className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                                <span className="font-semibold text-foreground truncate">{safeStr(alb.title)}</span>
+                                                {alb.year && <span className="text-[10px] font-mono text-foreground/40">({alb.year})</span>}
+                                              </div>
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => openEditAlbumModal(alb)}
+                                                  className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center"
+                                                  title="تعديل الألبوم"
+                                                >
+                                                  <Edit2 className="w-3 h-3" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )
+                                    ) : (
+                                      folderQasaed.length === 0 ? (
+                                        <p className="text-[11px] text-foreground/40 text-center py-3">لا توجد قصائد في هذا المجلد بعد.</p>
+                                      ) : (
+                                        <div className="space-y-1.5">
+                                          {folderQasaed.map(poem => {
+                                            const poemVisible = poem.is_visible !== false;
+                                            return (
+                                              <div
+                                                key={poem.id}
+                                                className={`flex items-center justify-between p-2.5 rounded-xl bg-card border border-border/40 text-xs ${
+                                                  poemVisible ? "" : "opacity-50"
+                                                }`}
+                                              >
+                                                <div className="min-w-0 flex-1 space-y-0.5">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="font-mono text-[10px] text-foreground/30 w-4 text-center shrink-0">
+                                                      {poem.order ?? "—"}
+                                                    </span>
+                                                    <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                                    <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
+                                                    {poem.release_year && (
+                                                      <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary px-1.5 py-0.2 rounded-full border border-primary/20">
+                                                        سنة {poem.release_year}
+                                                      </span>
+                                                    )}
+                                                    {poem.duration && (
+                                                      <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
+                                                    )}
+                                                  </div>
+                                                  {poem.description && (
+                                                    <p className="text-[11px] text-foreground/50 line-clamp-1 pr-6">
+                                                      {poem.description}
+                                                    </p>
+                                                  )}
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0 me-1">
+                                                  {poem.audio_url && (
+                                                    <audio controls preload="none" src={poem.audio_url} className="h-7 w-36 sm:w-48 rounded-lg border border-border/40" />
+                                                  )}
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => openEditPoemModal(poem)}
+                                                    className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center transition-all hover:scale-110"
+                                                    title="تعديل القصيدة والبيانات"
+                                                  >
+                                                    <Edit2 className="w-3 h-3" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleRemovePoemFromFolder(poem)}
+                                                    className="w-7 h-7 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/25 text-amber-500 flex items-center justify-center transition-all hover:scale-110"
+                                                    title="إزالة القصيدة من هذا المجلد"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
+                                                    className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center transition-all hover:scale-110"
+                                                    title="حذف القصيدة نهائياً"
+                                                  >
+                                                    <Trash2 className="w-3 h-3" />
+                                                  </button>
+                                                  <VisibilityToggle
+                                                    checked={poemVisible}
+                                                    onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
+                                                  />
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
-                  );
-                })}
+
+                    {/* Albums List Section */}
+                    {filteredAlbums.length === 0 ? (
+                      <div className="bg-card border border-border rounded-2xl py-16 text-center space-y-3">
+                        <FolderHeart className="w-10 h-10 text-foreground/15 mx-auto" />
+                        <p className="text-sm text-foreground/40">
+                          {searchQuery ? "لا توجد نتائج مطابقة." : "لا توجد ألبومات. أضف ألبومك الأول!"}
+                        </p>
+                        {!searchQuery && (
+                          <Button onClick={() => openCreateAlbumModal()} size="sm" className="rounded-xl">
+                            <Plus className="w-3.5 h-3.5 ml-1.5" /> ألبوم جديد
+                          </Button>
+                        )}
+                      </div>
+                    ) : filteredAlbums.map(album => {
+                      const albumPoems = getAlbumPoems(album.id);
+                      const isExpanded = expandedAlbums.has(album.id);
+                      const isVisible = album.is_visible !== false;
+                      const parentFolder = folders.find(f => f.id === album.folder_id);
+
+                      return (
+                        <div key={album.id}
+                          className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${
+                            isVisible ? "border-border" : "border-border/50 opacity-65"
+                          } ${isExpanded ? "ring-1 ring-primary/15" : ""}`}
+                        >
+                          <div className={`flex items-center gap-2 px-4 py-3 ${isExpanded ? "border-b border-border bg-muted/20" : ""}`}>
+                            <button
+                              onClick={() => toggleAlbumExpand(album.id)}
+                              className="flex items-center gap-2.5 flex-1 min-w-0 text-right group"
+                              aria-expanded={isExpanded}
+                            >
+                              <div className={`p-1 rounded-lg shrink-0 transition-colors ${
+                                isExpanded ? "bg-primary/10 text-primary" : "text-foreground/35 group-hover:text-primary group-hover:bg-primary/8"
+                              }`}>
+                                {isExpanded
+                                  ? <ChevronDown className="w-4 h-4" />
+                                  : <ChevronRight className="w-4 h-4" />}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-sm font-semibold leading-tight ${isVisible ? "text-foreground" : "text-foreground/40"}`}>
+                                    {safeStr(album.title)}
+                                  </span>
+                                  {album.year && (
+                                    <span className="text-[10px] font-mono text-foreground/30">{album.year}</span>
+                                  )}
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${getCategoryColor(album.category)}`}>
+                                    {getCategoryLabel(album.category)}
+                                  </span>
+                                  {parentFolder && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                                      <Folder className="w-2.5 h-2.5" />
+                                      {parentFolder.name}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-foreground/35 mt-0.5 flex items-center gap-2">
+                                  <span>{albumPoems.length} قصيدة</span>
+                                  {!isVisible && <span className="text-foreground/25">· مخفي</span>}
+                                </p>
+                              </div>
+                            </button>
+
+                            <div className="flex flex-row items-center justify-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openCreateAudioModal(album.id)}
+                                className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                title="إضافة مقطع صوتي للألبوم"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditAlbumModal(album)}
+                                className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                title="تعديل الألبوم"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => requestDelete("album", album.id, safeStr(album.title))}
+                                className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                title="حذف الألبوم"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                              <VisibilityToggle
+                                checked={isVisible}
+                                onCheckedChange={() => handleToggleVisibility("albums", album.id, isVisible)}
+                              />
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div>
+                              {albumPoems.length === 0 ? (
+                                <div className="py-8 text-center space-y-2">
+                                  <p className="text-xs text-foreground/40">لا توجد قصائد في هذا الألبوم بعد.</p>
+                                  <Button
+                                    size="sm" variant="outline"
+                                    onClick={() => openCreateAudioModal(album.id)}
+                                    className="h-7 text-[11px] rounded-lg border-primary/25 text-primary"
+                                  >
+                                    <Plus className="w-3 h-3 ml-1" /> إضافة مقطع صوتي
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="divide-y divide-border/40 p-2 space-y-1.5">
+                                  {albumPoems.map(poem => {
+                                    const poemVisible = poem.is_visible !== false;
+                                    return (
+                                      <div
+                                        key={poem.id}
+                                        className={`flex items-center justify-between p-2.5 rounded-xl bg-card/60 border border-border/40 text-xs transition-opacity ${
+                                          poemVisible ? "" : "opacity-50"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="font-mono text-[10px] text-foreground/30 w-5 text-center shrink-0">
+                                            {poem.order ?? "—"}
+                                          </span>
+                                          <Music className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                                          <span className="font-medium text-foreground truncate">{safeStr(poem.title)}</span>
+                                          {poem.duration && (
+                                            <span className="text-[10px] font-mono text-foreground/40">({poem.duration})</span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          {poem.audio_url && (
+                                            <audio controls preload="none" src={poem.audio_url} className="h-7 w-36 sm:w-48 rounded-lg border border-border/40" />
+                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={() => openEditPoemModal(poem)}
+                                            className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                            title="تعديل القصيدة"
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => requestDelete("audio", poem.id, safeStr(poem.title))}
+                                            className="w-7 h-7 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center shrink-0 aspect-square shadow-sm transition-all hover:scale-110 cursor-pointer"
+                                            title="حذف القصيدة"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                          <VisibilityToggle
+                                            checked={poemVisible}
+                                            onCheckedChange={() => handleToggleVisibility("audios", poem.id, poemVisible)}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ── SUB-TAB 2: ALL AUDIO TRACKS ── */}
+                {managementSubTab === "all_audios" && (
+                  <div className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-bold text-foreground">قائمة المقاطع الصوتية</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          {audios.filter(t => filterAudioTrack(t, trackFilterType, searchQuery)).length} مقطع
+                        </span>
+                      </div>
+
+                      <Button
+                        onClick={() => openCreateAudioModal()}
+                        size="sm"
+                        className="h-8 px-3 text-xs font-bold rounded-xl gap-1.5 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> إضافة مقطع جديد
+                      </Button>
+                    </div>
+
+                    {audios.filter(t => filterAudioTrack(t, trackFilterType, searchQuery)).length === 0 ? (
+                      <div className="py-12 text-center text-xs text-foreground/40 space-y-2">
+                        <Music className="w-8 h-8 mx-auto text-foreground/20" />
+                        <p>لا توجد مقاطع صوتية مطابقة للتصفية.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/40 space-y-2">
+                        {audios.filter(t => filterAudioTrack(t, trackFilterType, searchQuery)).map(track => {
+                          const isVisible = track.is_visible !== false;
+                          const parentAlbum = albums.find(a => a.id === track.album_id);
+                          const parentFolder = folders.find(f => f.id === track.folder_id);
+
+                          return (
+                            <div key={track.id} className={`pt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${!isVisible ? "opacity-55" : ""}`}>
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                                  <Music className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-xs text-foreground truncate">{safeStr(track.title)}</span>
+
+                                    {isSupplicationCategory(track.category) ? (
+                                      <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                                        الأدعية والمناجاة
+                                      </span>
+                                    ) : parentAlbum ? (
+                                      <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center gap-1">
+                                        <FolderHeart className="w-2.5 h-2.5" />
+                                        ألبوم: {parentAlbum.title}
+                                      </span>
+                                    ) : parentFolder ? (
+                                      <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+                                        <Folder className="w-2.5 h-2.5" />
+                                        مجلد: {parentFolder.name}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-muted text-foreground/60 border border-border">
+                                        مطع مستقل
+                                      </span>
+                                    )}
+
+                                    {track.duration && (
+                                      <span className="text-[10px] font-mono text-foreground/40">({track.duration})</span>
+                                    )}
+                                    {track.release_year && (
+                                      <span className="text-[9px] font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.2 rounded-full">
+                                        سنة {track.release_year}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {track.audio_url && (
+                                    <div className="flex items-center gap-1 text-[10px] font-mono text-foreground/40 truncate" style={{ direction: "ltr" }}>
+                                      <Link2 className="w-3 h-3 text-primary shrink-0" />
+                                      <span className="truncate max-w-sm">{track.audio_url}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                                {track.audio_url && (
+                                  <audio
+                                    controls
+                                    preload="none"
+                                    src={track.audio_url}
+                                    className="h-8 max-w-[210px] rounded-lg border border-border bg-card shadow-sm"
+                                  />
+                                )}
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditPoemModal(track)}
+                                    className="w-8 h-8 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/25 text-primary flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+                                    title="تعديل المقطع الصوتي والبيانات"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => requestDelete("audio", track.id, safeStr(track.title))}
+                                    className="w-8 h-8 rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/25 text-red-500 flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+                                    title="حذف المقطع الصوتي"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <VisibilityToggle
+                                    checked={isVisible}
+                                    onCheckedChange={() => handleToggleVisibility("audios", track.id, isVisible)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1821,7 +2124,6 @@ export default function AdminDashboard() {
                   <SelectContent>
                     <SelectItem value="sorrow">الأحزان (عزاء)</SelectItem>
                     <SelectItem value="joy">الأفراح والمواليد</SelectItem>
-                    <SelectItem value="supplications">الأدعية والمناجاة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1989,102 +2291,196 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit single poem modal */}
-      <Dialog open={editPoemModalOpen} onOpenChange={setEditPoemModalOpen}>
-        <DialogContent className="bg-background border-border text-right max-w-md rounded-[1.5rem] shadow-2xl" dir="rtl">
+      {/* Add / Edit Audio Track Modal */}
+      <Dialog open={audioModalOpen} onOpenChange={setAudioModalOpen}>
+        <DialogContent className="bg-background border-border text-right max-w-lg rounded-[1.5rem] shadow-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">تعديل القصيدة</DialogTitle>
-            <DialogDescription className="text-xs text-foreground/40">عدّل بيانات هذه القصيدة ثم احفظ.</DialogDescription>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Music className="w-4 h-4 text-primary" />
+              {editingAudio ? "تعديل المقطع الصوتي" : "إضافة مقطع صوتي جديد"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-foreground/40">
+              يرجى إدخال رابط صوتي مباشر (مثل MP3) وتحديد قسم الإسناد وعنوان المقطع.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveEditPoem} className="space-y-4 mt-1">
+
+          <form onSubmit={handleSaveAudioTrack} className="space-y-4 mt-2">
+            {/* Title */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">العنوان *</label>
-              <Input value={editAudioTitle} onChange={e => setEditAudioTitle(e.target.value)} disabled={actionLoading}
-                placeholder="عنوان القصيدة"
-                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl" />
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">عنوان المقطع / القصيدة *</label>
+              <Input
+                value={audioTrackTitle}
+                onChange={e => setAudioTrackTitle(e.target.value)}
+                disabled={actionLoading}
+                placeholder="مثال: دعاء التوسل / قصيدة الجراح"
+                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl"
+                required
+              />
             </div>
+
+            {/* Audio URL Input & Live Player Preview */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رابط الملف الصوتي *</label>
-              <Input type="url" value={editAudioUrl} onChange={e => setEditAudioUrl(e.target.value)}
-                disabled={actionLoading} placeholder="https://…/track.mp3"
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رابط الصوت المباشر (Direct Audio Link / URL) *</label>
+              <Input
+                type="url"
+                value={audioTrackUrl}
+                onChange={e => setAudioTrackUrl(e.target.value)}
+                disabled={actionLoading}
+                placeholder="https://example.com/audio/track.mp3"
                 className="h-11 text-xs text-left font-mono bg-muted/30 border-border rounded-xl"
-                style={{ direction: "ltr" }} />
+                style={{ direction: "ltr" }}
+                required
+              />
+              <p className="text-[10px] text-foreground/40">
+                أدخل رابط صوتي مباشر بصيغة MP3, WAV, M4A أو البث الصوتي.
+              </p>
+
+              {/* Embedded Player Preview */}
+              {audioTrackUrl.trim() && (
+                <div className="mt-2 p-3 bg-muted/30 border border-primary/20 rounded-xl space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-primary text-[10px] font-bold">
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>معاينة الصوت المباشر:</span>
+                  </div>
+                  <audio
+                    controls
+                    preload="metadata"
+                    src={audioTrackUrl.trim()}
+                    className="w-full h-9 rounded-lg shadow-sm"
+                  />
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الألبوم المستهدف</label>
-                <Select
-                  value={editAudioAlbumId}
-                  onValueChange={setEditAudioAlbumId}
-                  disabled={actionLoading}
-                >
-                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
-                    <SelectValue placeholder="بدون ألبوم" />
+
+            {/* Category / Section Assignment Selection */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">قسم الإسناد / الفئة (Category / Section) *</label>
+              <Select value={audioAssignmentType} onValueChange={(val: any) => setAudioAssignmentType(val)} disabled={actionLoading}>
+                <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="supplications">الأدعية والمناجاة (Supplications)</SelectItem>
+                  <SelectItem value="album">إسناد إلى ألبوم (Album)</SelectItem>
+                  <SelectItem value="folder">إسناد إلى مجلد قصائد (Folder)</SelectItem>
+                  <SelectItem value="standalone">مطع صوتي مستقل (Standalone)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Conditional Dropdown for Album */}
+            {audioAssignmentType === "album" && (
+              <div className="space-y-1.5 bg-primary/5 p-3 rounded-xl border border-primary/20">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50">اختر الألبوم المستهدف *</label>
+                <Select value={audioTargetAlbumId} onValueChange={setAudioTargetAlbumId} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-background border-border rounded-xl text-right">
+                    <SelectValue placeholder="اختر ألبوماً..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون ألبوم</SelectItem>
-                    {albums.map(a => (
-                      <SelectItem key={String(a.id)} value={String(a.id)}>{safeStr(a.title)}</SelectItem>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="none">اختر ألبوماً...</SelectItem>
+                    {albums.map(alb => (
+                      <SelectItem key={alb.id} value={String(alb.id)}>
+                        {safeStr(alb.title)} {alb.year ? `(${alb.year})` : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">مجلد القصائد</label>
-                <Select
-                  value={editAudioFolderId}
-                  onValueChange={setEditAudioFolderId}
-                  disabled={actionLoading}
-                >
-                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
-                    <SelectValue placeholder="بدون مجلد" />
+            )}
+
+            {/* Conditional Dropdown for Folder */}
+            {audioAssignmentType === "folder" && (
+              <div className="space-y-1.5 bg-primary/5 p-3 rounded-xl border border-primary/20">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/50">اختر المجلد المستهدف *</label>
+                <Select value={audioTargetFolderId} onValueChange={setAudioTargetFolderId} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-background border-border rounded-xl text-right">
+                    <SelectValue placeholder="اختر مجلداً..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون مجلد</SelectItem>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="none">اختر مجلداً...</SelectItem>
                     {folders
                       .filter(f => f.folder_type === "qasaed_only")
                       .map(f => (
-                        <SelectItem key={String(f.id)} value={String(f.id)}>{safeStr(f.name)}</SelectItem>
+                        <SelectItem key={f.id} value={String(f.id)}>
+                          {safeStr(f.name)} ({getCategoryLabel(f.category)})
+                        </SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+            )}
+
+            {/* Conditional Category Selector for Standalone */}
+            {audioAssignmentType === "standalone" && (
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">رقم المقطع</label>
-                <Input type="number" min="0" value={editAudioOrder} onChange={e => setEditAudioOrder(e.target.value)}
-                  disabled={actionLoading}
-                  className="h-11 text-sm text-center font-mono bg-muted/30 border-border rounded-xl"
-                  style={{ direction: "ltr" }} />
+                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">نوع الفئة</label>
+                <Select value={audioCategory} onValueChange={setAudioCategory} disabled={actionLoading}>
+                  <SelectTrigger className="h-11 text-sm bg-muted/30 border-border rounded-xl text-right">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="sorrow">الأحزان (عزاء)</SelectItem>
+                    <SelectItem value="joy">الأفراح والمواليد</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">المدة (مم:ثث)</label>
-                <Input placeholder="07:15" value={editAudioDuration} onChange={e => setEditAudioDuration(e.target.value)}
+            )}
+
+            {/* Grid for duration, order, year */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-foreground/40 uppercase tracking-wider">المدة (مم:ثث)</label>
+                <Input
+                  value={audioDuration}
+                  onChange={e => setAudioDuration(e.target.value)}
                   disabled={actionLoading}
-                  className="h-11 text-sm text-left font-mono bg-muted/30 border-border rounded-xl"
-                  style={{ direction: "ltr" }} />
+                  placeholder="05:30"
+                  className="h-10 text-xs text-center font-mono bg-muted/30 border-border rounded-xl"
+                  style={{ direction: "ltr" }}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-foreground/40 uppercase tracking-wider">الترتيب</label>
+                <Input
+                  type="number" min="1"
+                  value={audioOrder}
+                  onChange={e => setAudioOrder(e.target.value)}
+                  disabled={actionLoading}
+                  className="h-10 text-xs text-center font-mono bg-muted/30 border-border rounded-xl"
+                  style={{ direction: "ltr" }}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-foreground/40 uppercase tracking-wider">سنة الإصدار</label>
+                <Input
+                  type="number"
+                  value={audioReleaseYear}
+                  onChange={e => setAudioReleaseYear(e.target.value)}
+                  disabled={actionLoading}
+                  placeholder="2026"
+                  className="h-10 text-xs text-center font-mono bg-muted/30 border-border rounded-xl"
+                  style={{ direction: "ltr" }}
+                />
               </div>
             </div>
+
+            {/* Description */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">سنة الإصدار (اختياري)</label>
-              <Input type="number" placeholder="2026" value={editAudioReleaseYear} onChange={e => setEditAudioReleaseYear(e.target.value)}
+              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">وصف المقطع (اختياري)</label>
+              <Textarea
+                value={audioDescription}
+                onChange={e => setAudioDescription(e.target.value)}
                 disabled={actionLoading}
-                className="h-11 text-sm text-right bg-muted/30 border-border rounded-xl font-mono" />
+                placeholder="وصف مختصر أو تفاصيل إضافية..."
+                className="text-xs text-right bg-muted/30 border-border rounded-xl min-h-[60px] resize-none"
+              />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">الوصف (اختياري)</label>
-              <Textarea placeholder="وصف مختصر للقصيدة..." value={editAudioDescription} onChange={e => setEditAudioDescription(e.target.value)}
-                disabled={actionLoading}
-                className="text-sm text-right bg-muted/30 border-border rounded-xl resize-none min-h-[70px]" />
-            </div>
-            <DialogFooter className="flex gap-2 pt-1">
-              <Button type="submit" disabled={actionLoading}
-                className="h-10 px-6 text-xs font-bold rounded-xl">
-                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ التعديلات"}
+
+            <DialogFooter className="flex gap-2 pt-2 border-t border-border">
+              <Button type="submit" disabled={actionLoading} className="h-10 px-6 text-xs font-bold rounded-xl shadow-sm">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : editingAudio ? "حفظ التعديلات" : "حفظ المقطع الصوتي"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setEditPoemModalOpen(false)}
-                disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
+              <Button type="button" variant="outline" onClick={() => setAudioModalOpen(false)} disabled={actionLoading} className="h-10 px-4 text-xs rounded-xl border-border">
                 إلغاء
               </Button>
             </DialogFooter>
