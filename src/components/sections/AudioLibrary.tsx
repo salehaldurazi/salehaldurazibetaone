@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase-js";
 import { FadeInSection } from "../FadeInSection";
 import {
@@ -53,6 +54,7 @@ interface Track {
   audio_url: string;
   album_id: string | number;
   folder_id?: string | number | null;
+  category?: string;
   order?: number;
   listens_count?: number;
   downloads_count?: number;
@@ -230,6 +232,15 @@ function hashCode(str: string) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   return hash;
+}
+
+/**
+ * دالة مساعدة للتحقق مما إذا كانت الفئة ترمز لـ "الأدعية والمناجاة" (سواء supplications أو duas أو غيرها)
+ */
+export function isSupplicationCategory(category?: string | null): boolean {
+  if (!category) return false;
+  const cat = String(category).trim().toLowerCase();
+  return cat === "supplications" || cat === "duas" || cat === "dua" || cat === "الأدعية" || cat === "ادعية";
 }
 
 export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
@@ -496,102 +507,120 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   /**
-   * جلب البيانات من قاعدة بيانات سوبابيز عند تشغيل المكون
+   * جلب البيانات من قاعدة بيانات سوبابيز عند تشغيل المكون أو عند تحديث البيانات
    */
-  useEffect(() => {
-    async function fetchLibraryData() {
+  const fetchLibraryData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+
+      // جلب المجلدات
+      let foldersResult: AudioFolder[] = [];
       try {
-        setLoading(true);
-        setErrorMessage(null);
+        const { data: foldersData, error: foldersError } = await supabase
+          .from("audio_folders")
+          .select("*")
+          .order("display_order", { ascending: true });
+        if (foldersError) {
+          console.warn("[AudioLibrary] Folders fetch error:", foldersError);
+        } else if (foldersData) {
+          foldersResult = foldersData.filter((f: any) => f.is_visible !== false) as AudioFolder[];
+        }
+      } catch (e) { console.warn("[AudioLibrary] Folders fetch exception:", e); }
+      setLiveFolders(foldersResult);
+      console.log("[AudioLibrary] liveFolders fetched:", foldersResult);
 
-        // جلب المجلدات
-        let foldersResult: AudioFolder[] = [];
-        try {
-          const { data: foldersData, error: foldersError } = await supabase
-            .from("audio_folders")
-            .select("*")
-            .order("display_order", { ascending: true });
-          if (foldersError) {
-            console.warn("[AudioLibrary] Folders fetch error:", foldersError);
-          } else if (foldersData) {
-            foldersResult = foldersData.filter((f: any) => f.is_visible !== false) as AudioFolder[];
-          }
-        } catch (e) { console.warn("[AudioLibrary] Folders fetch exception:", e); }
-        setLiveFolders(foldersResult);
-        console.log("[AudioLibrary] liveFolders fetched:", foldersResult);
+      const { data: albumsData, error: albumsError } = await supabase
+        .from("albums")
+        .select("*");
 
-        const { data: albumsData, error: albumsError } = await supabase
-          .from("albums")
-          .select("*");
+      if (albumsError) throw albumsError;
 
-        if (albumsError) throw albumsError;
+      if (albumsData && albumsData.length > 0) {
+        const { data: tracksData, error: tracksError } = await supabase
+          .from("audios")
+          .select("*")
+          .order("order", { ascending: true });
 
-        if (albumsData && albumsData.length > 0) {
-          const { data: tracksData, error: tracksError } = await supabase
-            .from("audios")
-            .select("*")
-            .order("order", { ascending: true });
+        if (tracksError) throw tracksError;
 
-          if (tracksError) throw tracksError;
+        // Filter out hidden albums (defaulting to visible if column does not exist)
+        const visibleAlbumsData = albumsData.filter((album: any) => album.is_visible !== false);
 
-          // Filter out hidden albums (defaulting to visible if column does not exist)
-          const visibleAlbumsData = albumsData.filter((album: any) => album.is_visible !== false);
+        // Filter out hidden tracks (defaulting to visible if column does not exist)
+        const visibleTracksData = tracksData
+          ? tracksData.filter((track: any) => track.is_visible !== false)
+          : [];
 
-          // Filter out hidden tracks (defaulting to visible if column does not exist)
-          const visibleTracksData = tracksData
-            ? tracksData.filter((track: any) => track.is_visible !== false)
-            : [];
+        const fullAlbumsStructure = visibleAlbumsData.map((album: any) => {
+          const albumTracks = visibleTracksData.filter((track: any) => String(track.album_id) === String(album.id));
 
-          const fullAlbumsStructure = visibleAlbumsData.map((album: any) => {
-            const albumTracks = visibleTracksData.filter((track: any) => String(track.album_id) === String(album.id));
-
-            // إسناد إحصائيات استماع وتحميل من قاعدة البيانات (ندعم كلاً من play_count/download_count و listens_count/downloads_count للتوافق التام)
-            const tracksWithStats = albumTracks.map((track: any) => {
-              const baseListens = track.listens_count ?? track.play_count ?? 0;
-              const baseDownloads = track.downloads_count ?? track.download_count ?? 0;
-              return {
-                ...track,
-                listens_count: baseListens,
-                downloads_count: baseDownloads,
-              };
-            });
-
+          // إسناد إحصائيات استماع وتحميل من قاعدة البيانات (ندعم كلاً من play_count/download_count و listens_count/downloads_count للتوافق التام)
+          const tracksWithStats = albumTracks.map((track: any) => {
+            const baseListens = track.listens_count ?? track.play_count ?? 0;
+            const baseDownloads = track.downloads_count ?? track.download_count ?? 0;
             return {
-              ...album,
-              // Explicitly preserve folder_id as a number or null (never undefined)
-              folder_id: album.folder_id != null ? Number(album.folder_id) : null,
-              tracks: tracksWithStats
+              ...track,
+              listens_count: baseListens,
+              downloads_count: baseDownloads,
             };
           });
 
-          console.log("[AudioLibrary] Albums with folder_id:", fullAlbumsStructure.map((a: any) => ({ id: a.id, title: a.title, folder_id: a.folder_id })));
-          setLiveAlbums(fullAlbumsStructure as Album[]);
+          return {
+            ...album,
+            // Explicitly preserve folder_id as a number or null (never undefined)
+            folder_id: album.folder_id != null ? Number(album.folder_id) : null,
+            tracks: tracksWithStats
+          };
+        });
 
-          // جلب القصائد المستقلة (المرتبطة بمجلد فقط وبدون ألبوم)
-          const standaloneTracksData = visibleTracksData.filter(
-            (t: any) => t.folder_id != null && t.folder_id !== 0 && !t.album_id
-          ).map((t: any) => ({
-            ...t,
-            folder_id: Number(t.folder_id),
-            listens_count: t.listens_count ?? t.play_count ?? 0,
-            downloads_count: t.downloads_count ?? t.download_count ?? 0,
-          }));
-          console.log("[AudioLibrary] standaloneQasaed fetched:", standaloneTracksData);
-          setStandaloneQasaed(standaloneTracksData as Track[]);
-        } else {
-          console.info("[AudioLibrary] Database returned no albums. Using fallback albums.");
-          setLiveAlbums(FALLBACK_ALBUMS);
-        }
-      } catch (error: any) {
-        console.warn("[AudioLibrary] Supabase fetch error. Gracefully falling back to default local library. Details:", error);
+        console.log("[AudioLibrary] Albums with folder_id:", fullAlbumsStructure.map((a: any) => ({ id: a.id, title: a.title, folder_id: a.folder_id })));
+        setLiveAlbums(fullAlbumsStructure as Album[]);
+
+        // جلب المقاطع الصوتية المستقلة والأدعية (التي ليس لها ألبوم، سواء مرتبطة بمجلد أو بدون مجلد)
+        const standaloneTracksData = visibleTracksData.filter(
+          (t: any) => !t.album_id || t.album_id === 0 || String(t.album_id) === "null" || String(t.album_id) === "undefined"
+        ).map((t: any) => ({
+          ...t,
+          folder_id: t.folder_id != null ? Number(t.folder_id) : null,
+          listens_count: t.listens_count ?? t.play_count ?? 0,
+          downloads_count: t.downloads_count ?? t.download_count ?? 0,
+        }));
+        console.log("[AudioLibrary] standaloneQasaed fetched:", standaloneTracksData);
+        setStandaloneQasaed(standaloneTracksData as Track[]);
+      } else {
+        console.info("[AudioLibrary] Database returned no albums. Using fallback albums.");
         setLiveAlbums(FALLBACK_ALBUMS);
-      } finally {
-        setLoading(false);
       }
+    } catch (error: any) {
+      console.warn("[AudioLibrary] Supabase fetch error. Gracefully falling back to default local library. Details:", error);
+      setLiveAlbums(FALLBACK_ALBUMS);
+    } finally {
+      setLoading(false);
     }
-
-    fetchLibraryData();
   }, []);
+
+  useEffect(() => {
+    fetchLibraryData();
+
+    const handleLibraryUpdate = () => {
+      console.log("[AudioLibrary] Realtime library update event received");
+      fetchLibraryData();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchLibraryData();
+      }
+    };
+
+    window.addEventListener("library-data-updated", handleLibraryUpdate);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("library-data-updated", handleLibraryUpdate);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchLibraryData]);
 
   /**
    * Real-time custom event listener to synchronize statistics on play, download or player navigation
@@ -961,9 +990,288 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     return sortTracks(tracksList, sortBy);
   }, [currentFolderView, standaloneQasaed, searchQuery, sortBy]);
 
+  /**
+   * الصوتيات الخاصة بقسم الأدعية (تُعرض مباشرة كصوتيات فردية/مستقلة)
+   */
+  const supplicationsTracks = useMemo(() => {
+    let list = standaloneQasaed.filter(t => isSupplicationCategory(t.category));
+
+    liveAlbums.filter(a => isSupplicationCategory(a.category)).forEach(a => {
+      if (a.tracks) {
+        a.tracks.forEach(t => {
+          if (!list.some(existing => String(existing.id) === String(t.id))) {
+            list.push({ ...t, category: t.category || "supplications" });
+          }
+        });
+      }
+    });
+
+    if (searchQuery) {
+      const normQ = normalizeArabic(searchQuery);
+      list = list.filter(t =>
+        normalizeArabic(t.title).includes(normQ) ||
+        (t.description && normalizeArabic(t.description).includes(normQ))
+      );
+    }
+    return sortTracks(list, sortBy);
+  }, [standaloneQasaed, liveAlbums, searchQuery, sortBy]);
+
   const visibleAlbums = useMemo(() => {
     return filteredAndSortedAlbums.slice(0, visibleCount);
   }, [filteredAndSortedAlbums, visibleCount]);
+
+  /**
+   * دالة لعرض الصوتيات الفردية/المستقلة بنفس تصميم وبنية بطاقات الصوتيات داخل المجلدات
+   */
+  const renderStandaloneTracks = (tracksList: Track[], albumName = "الأدعية") => {
+    if (tracksList.length === 0) {
+      return (
+        <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
+          <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
+          <p className="text-sm tracking-widest">لا توجد صوتيات تطابق نتائج البحث في هذا القسم</p>
+        </div>
+      );
+    }
+
+    if (viewMode === "grid") {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 max-w-6xl mx-auto" dir="rtl">
+          <AnimatePresence mode="popLayout">
+            {tracksList.map((track, trackIdx) => (
+              <motion.div
+                key={track.id}
+                id={`track-${track.id}`}
+                layout
+                initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.96 }}
+                transition={{
+                  duration: 0.3,
+                  ease: [0.16, 1, 0.3, 1],
+                  delay: trackIdx < 8 ? trackIdx * 0.04 : 0,
+                }}
+                className="flex"
+              >
+                <Card className={cn(
+                  "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
+                  highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                  "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
+                )} dir="rtl">
+                  {/* Decorative background glow */}
+                  <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
+
+                  {/* Top Bar: Quick Play Button + Badges */}
+                  <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                    <button
+                      onClick={() => {
+                        incrementTrackStat(track.id, "listens");
+                        const mappedTrack = {
+                          ...track,
+                          audioUrl: track.audio_url,
+                          album: albumName
+                        };
+                        const mappedPlaylist = tracksList.map(t => ({
+                          ...t,
+                          audioUrl: t.audio_url,
+                          album: albumName
+                        }));
+                        onPlay(mappedTrack, mappedPlaylist);
+                      }}
+                      className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 cursor-pointer group/btn"
+                      title="تشغيل الصوت"
+                    >
+                      <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                    </button>
+                    <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
+                      {(track as any).status_label && (
+                        <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-primary/15 shrink-0">
+                          {(track as any).status_label}
+                        </span>
+                      )}
+                      {(track.year || track.release_year) && (
+                        <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-foreground/10 shrink-0">
+                          {track.year || track.release_year}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Middle Section: Track Title & Description */}
+                  <div className="my-auto relative z-10 text-right w-full px-1" dir="rtl">
+                    <h3 className="text-xs sm:text-sm font-bold text-foreground text-right truncate w-full leading-snug">
+                      {track.title}
+                    </h3>
+                    {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
+                      <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal text-right truncate w-full mt-0.5">
+                        {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Bottom Section: Compact Inline Stats Container & Dropdown Menu */}
+                  <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
+                    <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                        <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
+                      </div>
+                      <div className="w-px h-2 bg-foreground/15 mx-0.5" />
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
+                        <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer group/btn shrink-0"
+                          title="خيارات"
+                        >
+                          <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                        </button>
+                      </DropdownMenuTrigger>
+
+                      <DropdownMenuContent
+                        align="end"
+                        sideOffset={6}
+                        className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
+                      >
+                        <DropdownMenuItem
+                          onClick={() => handleAction("download", track)}
+                          className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
+                        >
+                          <span>تحميل</span>
+                          <Download className="w-3.5 h-3.5 text-primary shrink-0" />
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => handleAction("share", track)}
+                          className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
+                        >
+                          <span>مشاركة</span>
+                          <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3 max-w-5xl mx-auto">
+        {tracksList.map((track, trackIdx) => (
+          <motion.div
+            key={track.id}
+            id={`track-${track.id}`}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
+          >
+            <Card className={cn(
+              "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] text-start",
+              highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+              "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
+            )} dir="rtl">
+              <CardContent className="p-0" dir="rtl">
+                <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-2 sm:gap-4 flex-nowrap" dir="rtl">
+                  <div className="flex items-center gap-3 sm:gap-4 text-start min-w-0">
+                    <button
+                      onClick={() => {
+                        incrementTrackStat(track.id, "listens");
+                        const mappedTrack = {
+                          ...track,
+                          audioUrl: track.audio_url,
+                          album: albumName
+                        };
+                        const mappedPlaylist = tracksList.map(t => ({
+                          ...t,
+                          audioUrl: t.audio_url,
+                          album: albumName
+                        }));
+                        onPlay(mappedTrack, mappedPlaylist);
+                      }}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 cursor-pointer group/btn"
+                      title="تشغيل الصوت"
+                    >
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
+                    </button>
+                    <div className="text-start min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 mb-0.5">
+                        <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight truncate text-foreground">
+                          {track.title}
+                        </h3>
+                        {(track.year || track.release_year) && (
+                          <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shrink-0">
+                            {track.year || track.release_year}
+                          </span>
+                        )}
+                      </div>
+                      {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
+                        <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal truncate w-full text-right mt-0.5">
+                          {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 justify-start">
+                        {track.duration && (
+                          <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400">
+                            {track.duration}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 text-[8px] sm:text-[9px] text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl backdrop-blur-sm shrink-0">
+                      <div className="flex items-center gap-1">
+                        <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
+                        <span className="font-normal text-foreground/40 dark:text-gray-400">
+                          {(track.listens_count || 0).toLocaleString("en-US")}
+                        </span>
+                      </div>
+                      <div className="w-px h-2.5 bg-foreground/15" />
+                      <div className="flex items-center gap-1">
+                        <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
+                        <span className="font-normal text-foreground/40 dark:text-gray-400">
+                          {(track.downloads_count || 0).toLocaleString("en-US")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="ms-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleAction("download", track)}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                        title="تنزيل"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleAction("share", track)}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                        title="مشاركة"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
 
   /**
    * دالة مساعدة لتوليد اسم الملف المخصص وتنفيذ التحميل مباشرة عبر البراوزر
@@ -1309,257 +1617,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       );
                     })()
                   ) : (
-                    /* ── Qasaed-Only Folder: Render golden track cards ── */
-                    (() => {
-                      if (inFolderTracks.length === 0) {
-                        return (
-                          <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
-                            <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                            <p className="text-sm tracking-widest">لا توجد قصائد تطابق نتائج البحث في هذا المجلد</p>
-                          </div>
-                        );
-                      }
-                      if (viewMode === "grid") {
-                        return (
-                          <div className="grid grid-cols-3 landscape:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 max-w-6xl mx-auto" dir="rtl">
-                            <AnimatePresence mode="popLayout">
-                              {inFolderTracks.map((track, trackIdx) => (
-                                <motion.div
-                                  key={track.id}
-                                  id={`track-${track.id}`}
-                                  layout
-                                  initial={{ opacity: 0, y: 20, scale: 0.96 }}
-                                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                                  exit={{ opacity: 0, y: -20, scale: 0.96 }}
-                                  transition={{
-                                    duration: 0.3,
-                                    ease: [0.16, 1, 0.3, 1],
-                                    delay: trackIdx < 8 ? trackIdx * 0.04 : 0,
-                                  }}
-                                  className="flex"
-                                >
-                                  <Card className={cn(
-                                    "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-2xl sm:rounded-3xl md:rounded-[1.8rem] flex flex-col justify-between aspect-square p-2.5 sm:p-4 md:p-5 text-start items-start w-full relative",
-                                    highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                    "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
-                                  )} dir="rtl">
-                                    {/* Decorative background glow */}
-                                    <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
-
-                                    {/* Top Bar: Quick Play Button + Badges */}
-                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                                      <button
-                                        onClick={() => {
-                                          incrementTrackStat(track.id, "listens");
-                                          const mappedTrack = {
-                                            ...track,
-                                            audioUrl: track.audio_url,
-                                            album: currentFolderView.name
-                                          };
-                                          const mappedPlaylist = inFolderTracks.map(t => ({
-                                            ...t,
-                                            audioUrl: t.audio_url,
-                                            album: currentFolderView.name
-                                          }));
-                                          onPlay(mappedTrack, mappedPlaylist);
-                                        }}
-                                        className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-300 shrink-0 cursor-pointer group/btn"
-                                        title="تشغيل القصيدة"
-                                      >
-                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
-                                      </button>
-                                      <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
-                                        {(track as any).status_label && (
-                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-primary/15 shrink-0">
-                                            {(track as any).status_label}
-                                          </span>
-                                        )}
-                                        {(track.year || track.release_year) && (
-                                          <span className="inline-flex items-center text-[8px] sm:text-[10px] font-medium text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-foreground/10 shrink-0">
-                                            {track.year || track.release_year}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Middle Section: Track Title & Small Subtitle/Description */}
-                                    <div className="my-auto relative z-10 text-right w-full px-1" dir="rtl">
-                                      <h3 className="text-xs sm:text-sm font-bold text-foreground text-right truncate w-full leading-snug">
-                                        {track.title}
-                                      </h3>
-                                      {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
-                                        <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal text-right truncate w-full mt-0.5">
-                                          {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    {/* Bottom Section: Compact Inline Stats Container & Sleek Left Arrow Action Button */}
-                                    <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                                      <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
-                                        <div className="flex items-center gap-0.5 sm:gap-1">
-                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
-                                          <span className="font-medium">{(track.listens_count || 0).toLocaleString("en-US")}</span>
-                                        </div>
-                                        <div className="w-px h-2 bg-foreground/15 mx-0.5" />
-                                        <div className="flex items-center gap-0.5 sm:gap-1">
-                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
-                                          <span className="font-medium">{(track.downloads_count || 0).toLocaleString("en-US")}</span>
-                                        </div>
-                                      </div>
-
-                                      {/* Left Arrow Button & Portal Popover Menu */}
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <button
-                                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer group/btn shrink-0"
-                                            title="خيارات"
-                                          >
-                                            <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
-                                          </button>
-                                        </DropdownMenuTrigger>
-
-                                        <DropdownMenuContent
-                                          align="end"
-                                          sideOffset={6}
-                                          className="bg-[#18181b]/95 border border-primary/30 text-right min-w-[120px] rounded-xl p-1.5 backdrop-blur-md z-[200] animate-in fade-in-0 zoom-in-95 duration-200"
-                                        >
-                                          <DropdownMenuItem
-                                            onClick={() => handleAction("download", track)}
-                                            className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
-                                          >
-                                            <span>تحميل</span>
-                                            <Download className="w-3.5 h-3.5 text-primary shrink-0" />
-                                          </DropdownMenuItem>
-
-                                          <DropdownMenuItem
-                                            onClick={() => handleAction("share", track)}
-                                            className="flex items-center justify-end gap-2 w-full px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-200 hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer text-right"
-                                          >
-                                            <span>مشاركة</span>
-                                            <Share2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
-                                  </Card>
-                                </motion.div>
-                              ))}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="space-y-3 max-w-5xl mx-auto">
-                          {inFolderTracks.map((track, trackIdx) => (
-                            <motion.div
-                              key={track.id}
-                              id={`track-${track.id}`}
-                              initial={{ opacity: 0, y: 16 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3, delay: trackIdx < 8 ? trackIdx * 0.04 : 0 }}
-                            >
-                              <Card className={cn(
-                                "bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden group backdrop-blur-2xl rounded-[1.5rem] text-start",
-                                highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                                "ring-2 ring-primary border-primary/60 bg-primary/10 animate-pulse"
-                              )} dir="rtl">
-                                <CardContent className="p-0" dir="rtl">
-                                  <div className="p-3 sm:p-4 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent flex items-center justify-between gap-2 sm:gap-4 flex-nowrap" dir="rtl">
-                                    <div className="flex items-center gap-3 sm:gap-4 text-start min-w-0">
-                                      <button
-                                        onClick={() => {
-                                          incrementTrackStat(track.id, "listens");
-                                          const mappedTrack = {
-                                            ...track,
-                                            audioUrl: track.audio_url,
-                                            album: currentFolderView.name
-                                          };
-                                          const mappedPlaylist = inFolderTracks.map(t => ({
-                                            ...t,
-                                            audioUrl: t.audio_url,
-                                            album: currentFolderView.name
-                                          }));
-                                          onPlay(mappedTrack, mappedPlaylist);
-                                        }}
-                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center transition-all hover:scale-110 hover:bg-primary/25 duration-500 shrink-0 cursor-pointer group/btn"
-                                        title="تشغيل القصيدة"
-                                      >
-                                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
-                                      </button>
-                                      <div className="text-start min-w-0">
-                                        <div className="flex items-center gap-2 min-w-0 mb-0.5">
-                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight truncate text-foreground">
-                                            {track.title}
-                                          </h3>
-                                          {(track.year || track.release_year) && (
-                                            <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold text-zinc-400/80 bg-foreground/5 px-1.5 py-0.5 rounded-full border border-foreground/10 shrink-0">
-                                              {track.year || track.release_year}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {(track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name) && (
-                                          <p className="text-[8px] sm:text-[9px] text-zinc-400/80 font-normal truncate w-full text-right mt-0.5">
-                                            {track.description || track.reciter || track.artist || track.subtitle || track.details || track.event_name}
-                                          </p>
-                                        )}
-                                        <div className="flex items-center gap-2 justify-start">
-                                          {track.duration && (
-                                            <p className="text-[9px] sm:text-[10px] md:text-xs text-foreground/40 dark:text-gray-400">
-                                              {track.duration}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Track stats and actions */}
-                                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                                      <div className="flex items-center gap-1.5 sm:gap-2.5 text-[8px] sm:text-[9px] text-foreground/40 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl backdrop-blur-sm shrink-0">
-                                        <div className="flex items-center gap-1">
-                                          <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
-                                          <span className="font-normal text-foreground/40 dark:text-gray-400">
-                                            {(track.listens_count || 0).toLocaleString("en-US")}
-                                          </span>
-                                        </div>
-                                        <div className="w-px h-2.5 bg-foreground/15" />
-                                        <div className="flex items-center gap-1">
-                                          <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
-                                          <span className="font-normal text-foreground/40 dark:text-gray-400">
-                                            {(track.downloads_count || 0).toLocaleString("en-US")}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <div className="ms-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => handleAction("download", track)}
-                                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                                          title="تنزيل"
-                                        >
-                                          <Download className="w-3.5 h-3.5" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => handleAction("share", track)}
-                                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                                          title="مشاركة"
-                                        >
-                                          <Share2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </motion.div>
-                          ))}
-                        </div>
-                      );
-                    })()
+                    /* ── Qasaed-Only Folder: Render track cards ── */
+                    renderStandaloneTracks(inFolderTracks, currentFolderView.name)
                   )}
                 </motion.div>
               ) : (
@@ -1570,7 +1629,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {/* ── Folder Cards Grid ── */}
                   {visibleFolders.length > 0 && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
                         <AnimatePresence mode="popLayout">
                           {visibleFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
@@ -1662,18 +1721,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     />
                   </TabsContent>
                   <TabsContent value="supplications" className="mt-0 focus-visible:outline-none">
-                    <AlbumGrid
-                      albums={visibleAlbums}
-                      folders={liveFolders}
-                      onPlay={onPlay}
-                      onAction={handleAction}
-                      onIncrementStat={incrementTrackStat}
-                      expandedAlbumId={expandedAlbumId}
-                      setExpandedAlbumId={setExpandedAlbumId}
-                      viewMode={viewMode}
-                      highlightedTrackId={highlightedTrackId}
-                      highlightedAlbumId={highlightedAlbumId}
-                    />
+                    {renderStandaloneTracks(supplicationsTracks, "الأدعية")}
                   </TabsContent>
 
                   {/* Show All Button */}
@@ -1758,6 +1806,12 @@ function AlbumGrid({
   highlightedTrackId?: string | number | null,
   highlightedAlbumId?: string | number | null
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [playerState, setPlayerState] = useState<{ isActive: boolean; isMinimized: boolean }>(() => {
     if (typeof window !== "undefined" && (window as any).__playerState) {
       return (window as any).__playerState;
@@ -1898,7 +1952,7 @@ function AlbumGrid({
                     {/* Decorative background glow */}
                     <div className="absolute top-0 start-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-xl sm:blur-2xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
 
-                    {/* Top Bar: Quick Play Button (Right / Start) + Status Label & Year Badges (Left / End - Strictly Single Line) */}
+                    {/* Top Bar: Quick Play Button + Badges */}
                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
                       <button
                         onClick={() => handleAlbumPlay(album, idx)}
@@ -1908,7 +1962,6 @@ function AlbumGrid({
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 fill-current translate-x-[-1px] group-hover/btn:scale-110 transition-transform duration-300" />
                       </button>
                       <div className="flex flex-row flex-nowrap items-center gap-1 justify-end shrink-0 whitespace-nowrap overflow-hidden">
-
                         {album.status_label && (
                           <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shrink-0">
                             {album.status_label}
@@ -1920,16 +1973,19 @@ function AlbumGrid({
                       </div>
                     </div>
 
-                    {/* Middle Section: Album Title Only (Bottom year removed) */}
-                    <div className="my-auto relative z-10 text-start w-full" dir="rtl">
-                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-3">
+                    {/* Middle Section: Album Title (Clickable to open modal) */}
+                    <div
+                      className="my-auto relative z-10 text-start w-full cursor-pointer"
+                      dir="rtl"
+                      onClick={() => setExpandedAlbumId(album.id)}
+                    >
+                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold tracking-tight text-foreground leading-snug line-clamp-3 group-hover:text-primary transition-colors">
                         {album.title}
                       </h3>
                     </div>
 
-                    {/* Bottom Section: Compact Inline Stats Container (Right) & Sleek Expand Icon Button (Left) */}
+                    {/* Bottom Section: Compact Inline Stats Container & Expand Button */}
                     <div className="flex items-center justify-between gap-1 relative z-10 w-full" dir="rtl">
-                      {/* Compact inline statistics container (w-auto, justify-start, gap-2) */}
                       <div className="inline-flex items-center justify-start gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-sm w-auto shrink-0">
                         <div className="flex items-center gap-0.5">
                           <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary shrink-0 opacity-80" />
@@ -1942,7 +1998,6 @@ function AlbumGrid({
                         </div>
                       </div>
 
-                      {/* Minimalist expand icon button (No track count text) */}
                       <button
                         onClick={() => setExpandedAlbumId(album.id)}
                         className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg sm:rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/20 text-primary flex items-center justify-center transition-all cursor-pointer group/btn shrink-0"
@@ -1992,7 +2047,6 @@ function AlbumGrid({
                             {album.title}
                           </h3>
                           <div className="flex items-center gap-2 justify-start">
-
                             {album.status_label && (
                               <span className="inline-flex items-center text-[6px] sm:text-xs font-light text-primary bg-primary/20 px-1.5 sm:px-2 py-0.5 rounded-full border border-primary/15 shrink-0">
                                 {album.status_label}
@@ -2124,191 +2178,194 @@ function AlbumGrid({
         </AnimatePresence>
       </div>
 
-      {/* Modern Glassmorphic Container & Full-Screen Blurred Backdrop for Grid View Tracklist */}
-      <AnimatePresence mode="wait">
-        {viewMode === "grid" && selectedAlbumForGrid && (() => {
-          const modalListens = selectedAlbumForGrid.tracks
-            ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.listens_count || 0), 0)
-            : 0;
-          const modalDownloads = selectedAlbumForGrid.tracks
-            ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.downloads_count || 0), 0)
-            : 0;
+      {/* Modern Glassmorphic Container & Full-Screen Blurred Backdrop for Grid View Tracklist (Portaled to document.body) */}
+      {mounted && createPortal(
+        <AnimatePresence mode="wait">
+          {viewMode === "grid" && selectedAlbumForGrid && (() => {
+            const modalListens = selectedAlbumForGrid.tracks
+              ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.listens_count || 0), 0)
+              : 0;
+            const modalDownloads = selectedAlbumForGrid.tracks
+              ? selectedAlbumForGrid.tracks.reduce((sum: number, t: any) => sum + (t.downloads_count || 0), 0)
+              : 0;
 
-          // Dynamic top and bottom boundary offsets for strict viewport isolation (above nav bar z-[110] and audio player z-[160])
-          const topOffsetClass = "top-20 sm:top-24 md:top-28";
-          let bottomOffsetClass = "bottom-[6.5rem] sm:bottom-[7rem]"; // Stops strictly ABOVE bottom navigation bar (fixed bottom-6)
+            // Dynamic top and bottom boundary offsets for strict viewport isolation (above nav bar z-[110] and audio player z-[160])
+            const topOffsetClass = "top-20 sm:top-24 md:top-28";
+            let bottomOffsetClass = "bottom-[6.5rem] sm:bottom-[7rem]"; // Stops strictly ABOVE bottom navigation bar (fixed bottom-6)
 
-          if (playerState.isActive) {
-            if (playerState.isMinimized) {
-              // Mini player active: lock bottom edge right above mini player bar
-              bottomOffsetClass = "bottom-[10.5rem] sm:bottom-[11.5rem]";
-            } else {
-              // Full player active: lock bottom edge right above full player bar
-              bottomOffsetClass = "bottom-[14.5rem] sm:bottom-[15.5rem]";
+            if (playerState.isActive) {
+              if (playerState.isMinimized) {
+                // Mini player active: lock bottom edge right above mini player bar
+                bottomOffsetClass = "bottom-[10.5rem] sm:bottom-[11.5rem]";
+              } else {
+                // Full player active: lock bottom edge right above full player bar
+                bottomOffsetClass = "bottom-[14.5rem] sm:bottom-[15.5rem]";
+              }
             }
-          }
 
-          return (
-            <React.Fragment key={`grid-album-portal-${selectedAlbumForGrid.id}`}>
-              {/* 1. Full Screen Viewport Backdrop Overlay (z-40) with touch-none and overscroll-contain */}
-              <motion.div
-                key="grid-album-full-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="fixed inset-0 w-screen h-screen z-40 bg-black/60 backdrop-blur-md cursor-pointer touch-none overscroll-contain"
-                onClick={() => setExpandedAlbumId(null)}
-              />
-
-              {/* 2. Expanded Album Card Wrapper (z-50) */}
-              <motion.div
-                key="grid-album-card-wrapper"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className={cn(
-                  "fixed inset-x-0 z-50 flex items-start justify-center px-3 sm:px-4 pointer-events-none transition-all duration-500 ease-in-out overscroll-contain",
-                  topOffsetClass,
-                  bottomOffsetClass
-                )}
-                dir="rtl"
-              >
+            return (
+              <React.Fragment key={`grid-album-portal-${selectedAlbumForGrid.id}`}>
+                {/* 1. Full Screen Viewport Backdrop Overlay (z-50) with touch-none and overscroll-contain */}
                 <motion.div
-                  key={`grid-album-modal-${selectedAlbumForGrid.id}`}
-                  initial={{ scale: 0.96, opacity: 0, y: -16 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.96, opacity: 0, y: -16 }}
-                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                  className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-auto max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain cursor-default"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Modal Background Glow */}
-                  <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                  key="grid-album-full-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed inset-0 w-screen h-screen z-50 bg-black/60 backdrop-blur-md cursor-pointer touch-none overscroll-contain"
+                  onClick={() => setExpandedAlbumId(null)}
+                />
 
-                  {/* Modal Header */}
-                  <div className="flex items-center justify-between pb-3 sm:pb-3.5 border-b border-primary/10 shrink-0 gap-2">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                      <button
-                        onClick={() =>
-                          handleAlbumPlay(
-                            selectedAlbumForGrid,
-                            albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
-                          )
-                        }
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all cursor-pointer shrink-0 group/playbtn"
-                        title="تشغيل الألبوم كاملاً"
-                      >
-                        <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/playbtn:scale-110 transition-transform duration-300" />
-                      </button>
-                      <div className="text-start min-w-0 flex-1">
-                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground truncate leading-snug">
-                          {selectedAlbumForGrid.title}
-                        </h3>
-                        {/* Sleek RTL flex row for Year, Status Label & Stats */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-foreground/70 flex-wrap mt-0.5">
-                          <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shrink-0">{selectedAlbumForGrid.year}</span>
-                          {selectedAlbumForGrid.status_label && (
-                            <span className="inline-flex items-center bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold text-[9px] sm:text-[10px] border border-primary/15">
-                              {selectedAlbumForGrid.status_label}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                            <div className="flex items-center gap-1">
-                              <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
-                              <span>{modalListens.toLocaleString("en-US")}</span>
-                            </div>
-                            <div className="w-px h-2.5 bg-foreground/15" />
-                            <div className="flex items-center gap-1">
-                              <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
-                              <span>{modalDownloads.toLocaleString("en-US")}</span>
+                {/* 2. Expanded Album Card Wrapper (z-[51]) */}
+                <motion.div
+                  key="grid-album-card-wrapper"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={cn(
+                    "fixed inset-x-0 z-[51] flex items-start justify-center px-3 sm:px-4 pointer-events-none transition-all duration-500 ease-in-out overscroll-contain",
+                    topOffsetClass,
+                    bottomOffsetClass
+                  )}
+                  dir="rtl"
+                >
+                  <motion.div
+                    key={`grid-album-modal-${selectedAlbumForGrid.id}`}
+                    initial={{ scale: 0.96, opacity: 0, y: -16 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.96, opacity: 0, y: -16 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className="pointer-events-auto relative w-[calc(100vw-1.5rem)] max-w-lg h-auto max-h-full bg-card/95 dark:bg-black/95 border border-primary/20 backdrop-blur-3xl rounded-3xl sm:rounded-[2.2rem] p-3.5 sm:p-6 overflow-hidden flex flex-col text-start transition-all duration-500 ease-in-out overscroll-contain cursor-default"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Modal Background Glow */}
+                    <div className="absolute top-0 start-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between pb-3 sm:pb-3.5 border-b border-primary/10 shrink-0 gap-2">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        <button
+                          onClick={() =>
+                            handleAlbumPlay(
+                              selectedAlbumForGrid,
+                              albums.findIndex((a) => a.id === selectedAlbumForGrid.id)
+                            )
+                          }
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 transition-all cursor-pointer shrink-0 group/playbtn"
+                          title="تشغيل الألبوم كاملاً"
+                        >
+                          <Play className="w-4 h-4 fill-current translate-x-[-1px] group-hover/playbtn:scale-110 transition-transform duration-300" />
+                        </button>
+                        <div className="text-start min-w-0 flex-1">
+                          <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground truncate leading-snug">
+                            {selectedAlbumForGrid.title}
+                          </h3>
+                          {/* Sleek RTL flex row for Year, Status Label & Stats */}
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-foreground/70 flex-wrap mt-0.5">
+                            <span className="inline-flex items-center text-[6px] sm:text-xs font-bold text-zinc-400/80 bg-foreground/5 px-1.5 sm:px-2 py-0.5 rounded-full border border-foreground/10 shrink-0">{selectedAlbumForGrid.year}</span>
+                            {selectedAlbumForGrid.status_label && (
+                              <span className="inline-flex items-center bg-primary/20 text-primary px-1.5 sm:px-2 py-0.5 rounded-full font-bold text-[9px] sm:text-[10px] border border-primary/15">
+                                {selectedAlbumForGrid.status_label}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-foreground/50 dark:text-gray-400 bg-foreground/5 border border-foreground/10 px-1.5 sm:px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                              <div className="flex items-center gap-1">
+                                <Headphones className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
+                                <span>{modalListens.toLocaleString("en-US")}</span>
+                              </div>
+                              <div className="w-px h-2.5 bg-foreground/15" />
+                              <div className="flex items-center gap-1">
+                                <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary opacity-80" />
+                                <span>{modalDownloads.toLocaleString("en-US")}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+
+                      <button
+                        onClick={() => setExpandedAlbumId(null)}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground/40 hover:text-foreground flex items-center justify-center transition-all cursor-pointer shrink-0"
+                        title="إغلاق"
+                      >
+                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => setExpandedAlbumId(null)}
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground/40 hover:text-foreground flex items-center justify-center transition-all cursor-pointer shrink-0"
-                      title="إغلاق"
+                    {/* Premium Custom Scrollbar Tracklist with Mobile Touch-Pan Isolation */}
+                    <div
+                      className="py-2.5 sm:py-3 space-y-1.5 sm:space-y-2 overflow-y-auto flex-1 pe-1 ps-0.5 transition-all duration-500 ease-in-out [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent] overscroll-contain touch-pan-y"
+                      style={{ touchAction: "pan-y" }}
                     >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                  </div>
+                      {selectedAlbumForGrid.tracks &&
+                        selectedAlbumForGrid.tracks.map((track: any, trackIdx: number) => (
+                          <div
+                            key={track.id}
+                            id={`track-${track.id}`}
+                            className={cn(
+                              "flex items-center justify-between p-2 sm:p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-2 sm:gap-3 group/item",
+                              highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
+                              "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                              <Button
+                                onClick={() => handleTrackPlay(track, selectedAlbumForGrid)}
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0"
+                              >
+                                <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+                              </Button>
 
-                  {/* Premium Custom Scrollbar Tracklist with Mobile Touch-Pan Isolation */}
-                  <div
-                    className="py-2.5 sm:py-3 space-y-1.5 sm:space-y-2 overflow-y-auto flex-1 pe-1 ps-0.5 transition-all duration-500 ease-in-out [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/60 [scrollbar-width:thin] [scrollbar-color:rgba(197,160,89,0.3)_transparent] overscroll-contain touch-pan-y"
-                    style={{ touchAction: "pan-y" }}
-                  >
-                    {selectedAlbumForGrid.tracks &&
-                      selectedAlbumForGrid.tracks.map((track: any, trackIdx: number) => (
-                        <div
-                          key={track.id}
-                          id={`track-${track.id}`}
-                          className={cn(
-                            "flex items-center justify-between p-2 sm:p-3 rounded-xl bg-foreground/5 hover:bg-primary/10 transition-all border border-transparent hover:border-primary/10 gap-2 sm:gap-3 group/item",
-                            highlightedTrackId && String(highlightedTrackId) === String(track.id) &&
-                            "ring-2 ring-primary border-primary/50 bg-primary/20 animate-pulse"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                            <Button
-                              onClick={() => handleTrackPlay(track, selectedAlbumForGrid)}
-                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shrink-0 p-0"
-                            >
-                              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
-                            </Button>
-
-                            <div className="flex items-center justify-center min-w-[1.5rem] sm:min-w-[1.8rem] h-5 sm:h-6 rounded-md bg-white dark:bg-primary/5 border border-primary/10 shrink-0">
-                              <span className="text-[9px] sm:text-[10px] font-light text-primary/60">
-                                {(track.order || trackIdx + 1).toString().padStart(2, "0")}
-                              </span>
-                            </div>
-
-                            <div className="min-w-0 flex-1 text-start">
-                              <span className="text-xs sm:text-sm font-medium block truncate text-foreground group-hover/item:text-primary transition-colors">
-                                {track.title}
-                              </span>
-                              {track.duration && (
-                                <span className="text-[9px] sm:text-[10px] text-foreground/40 block truncate">
-                                  {track.duration}
+                              <div className="flex items-center justify-center min-w-[1.5rem] sm:min-w-[1.8rem] h-5 sm:h-6 rounded-md bg-white dark:bg-primary/5 border border-primary/10 shrink-0">
+                                <span className="text-[9px] sm:text-[10px] font-light text-primary/60">
+                                  {(track.order || trackIdx + 1).toString().padStart(2, "0")}
                                 </span>
-                              )}
+                              </div>
+
+                              <div className="min-w-0 flex-1 text-start">
+                                <span className="text-xs sm:text-sm font-medium block truncate text-foreground group-hover/item:text-primary transition-colors">
+                                  {track.title}
+                                </span>
+                                {track.duration && (
+                                  <span className="text-[9px] sm:text-[10px] text-foreground/40 block truncate">
+                                    {track.duration}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onAction("download", track)}
+                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                title="تنزيل"
+                              >
+                                <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onAction("share", track)}
+                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
+                                title="مشاركة"
+                              >
+                                <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              </Button>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onAction("download", track)}
-                              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                              title="تنزيل"
-                            >
-                              <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onAction("share", track)}
-                              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg hover:bg-primary/20 text-foreground/30 hover:text-primary transition-all p-0"
-                              title="مشاركة"
-                            >
-                              <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
+                        ))}
+                    </div>
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            </React.Fragment>
-          );
-        })()}
-      </AnimatePresence>
+              </React.Fragment>
+            );
+          })()}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
