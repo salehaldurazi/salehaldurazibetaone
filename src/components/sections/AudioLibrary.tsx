@@ -1631,7 +1631,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   {/* ── Folder Cards Grid ── */}
                   {visibleFolders.length > 0 && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-3 sm:grid-cols-4 landscape:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 max-w-6xl mx-auto" dir="rtl">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-5xl mx-auto" dir="rtl">
                         <AnimatePresence mode="popLayout">
                           {visibleFolders.map((folder, idx) => {
                             const isAlbumsOnly = folder.folder_type === "albums_only";
@@ -1655,22 +1655,22 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                   onClick={() => setCurrentFolderView(folder)}
                                   className="w-full text-start group h-full"
                                 >
-                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-xl sm:rounded-2xl cursor-pointer h-full">
-                                    <CardContent className="p-2 sm:p-3.5 flex items-center justify-between gap-1.5 sm:gap-3 h-full" dir="rtl">
-                                      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
-                                        {/* Glowing gold icon */}
-                                        <div className="flex w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0">
+                                  <Card className="bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-500 overflow-hidden backdrop-blur-2xl rounded-2xl sm:rounded-[2rem] cursor-pointer h-full">
+                                    <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2 sm:gap-4 h-full" dir="rtl">
+                                      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0 flex-1">
+                                        {/* Glowing gold icon (hidden on mobile < sm for maximum title space) */}
+                                        <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 items-center justify-center transition-all group-hover:scale-110 duration-500 shrink-0">
                                           {isAlbumsOnly ? (
-                                            <FolderHeart className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                            <FolderHeart className="w-5 h-5" />
                                           ) : (
-                                            <Music className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                            <Music className="w-5 h-5" />
                                           )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                          <h3 className="text-[10px] sm:text-xs md:text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors duration-300 truncate leading-tight">
+                                          <h3 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-foreground group-hover:text-primary transition-colors duration-300 whitespace-normal break-words leading-snug">
                                             {folder.name}
                                           </h3>
-                                          <p className="text-[7.5px] sm:text-[9.5px] text-foreground/40 mt-0.5 truncate">
+                                          <p className="text-[9px] sm:text-[11px] text-foreground/40 mt-1">
                                             {isAlbumsOnly
                                               ? `${folderItemCount} ألبوم`
                                               : `${folderItemCount} قصيدة`
@@ -1679,8 +1679,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                                         </div>
                                       </div>
                                       {/* Arrow indicator */}
-                                      <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-md sm:rounded-lg border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
-                                        <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 -rotate-90" />
+                                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-primary/15 bg-primary/5 flex items-center justify-center text-primary/50 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/10 transition-all duration-300 shrink-0">
+                                        <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
                                       </div>
                                     </CardContent>
                                   </Card>
