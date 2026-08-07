@@ -1221,7 +1221,7 @@ export default function AdminDashboard() {
                     { icon: Youtube, label: "المرئيات", count: videos.length, tab: "videos" as Tab, color: "text-red-500" },
                   ].map(({ icon: Icon, label, count, tab, color }) => (
                     <button key={label} onClick={() => setActiveTab(tab)}
-                      className="bg-card border border-border rounded-2xl p-4 text-right hover:border-primary/25 hover:shadow-md transition-all group text-left">
+                      className="bg-card border border-border rounded-2xl p-4 text-right hover:border-primary/25 hover:shadow-md transition-all group">
                       <div className="flex items-start justify-between">
                         <div className={`p-1.5 rounded-lg bg-muted group-hover:scale-110 transition-transform`}>
                           <Icon className={`w-4 h-4 ${color}`} />
