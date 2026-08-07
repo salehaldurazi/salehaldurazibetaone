@@ -1742,7 +1742,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                           <span className="relative z-10">عرض الكل</span>
-                          <ChevronDown className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors duration-300 relative z-10 group-hover:translate-y-0.5 transition-transform duration-300" />
+                          <ChevronDown className="w-4 h-4 text-primary/60 group-hover:text-primary relative z-10 group-hover:translate-y-0.5 transition-all duration-300" />
                         </motion.button>
                       </motion.div>
                     )}
