@@ -43,6 +43,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn, normalizeArabic } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FolderX, SearchX, Inbox } from "lucide-react";
 
 /**
  * واجهة تمثل بيانات القصيدة
@@ -53,6 +56,7 @@ interface Track {
   duration: string;
   audio_url: string;
   album_id: string | number;
+  album?: string;
   folder_id?: string | number | null;
   category?: string;
   order?: number;
@@ -295,13 +299,17 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [expandedAlbumId]);
 
-  // Reset visibleCount when activeCategory or searchQuery changes
+  // Reset search query & folder view automatically when activeCategory changes
+  useEffect(() => {
+    setSearchQuery("");
+    setVisibleCount(5);
+    setCurrentFolderView(null);
+    setExpandedAlbumId(null);
+  }, [activeCategory]);
+
   useEffect(() => {
     setVisibleCount(5);
-    if (currentFolderView && currentFolderView.category !== activeCategory) {
-      setCurrentFolderView(null);
-    }
-  }, [activeCategory, searchQuery]);
+  }, [searchQuery]);
 
   // معالجة مشاركة المقاطع الصوتية عند فتح رابط يحتوي على معرف المقطع
   useEffect(() => {
@@ -764,16 +772,15 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
   };
 
   /**
-   * التشغيل العشوائي التكيفي بناءً على السياق الحالي (المجلد النشط / الألبوم المفتوح / المكتبة الرئيسية)
+   * التشغيل العشوائي التكيفي بناءً على السياق الحالي والعناصر المفلترة في الفئة النشطة حصراً
    */
   const handleShufflePlay = () => {
     let poolTracks: any[] = [];
 
-    // 1. السياق الأول: تشغيل من داخل مجلد نشط
+    // 1. السياق الأول: تشغيل من داخل مجلد نشط في الفئة الحالية
     if (currentFolderView) {
       if (currentFolderView.folder_type === "albums_only") {
-        const folderAlbums = liveAlbums.filter(a => String(a.folder_id) === String(currentFolderView.id));
-        folderAlbums.forEach(album => {
+        inFolderAlbums.forEach(album => {
           if (album.tracks) {
             album.tracks.forEach(track => {
               poolTracks.push({
@@ -785,8 +792,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
           }
         });
       } else {
-        const folderTracks = standaloneQasaed.filter(t => String(t.folder_id) === String(currentFolderView.id));
-        folderTracks.forEach(track => {
+        inFolderTracks.forEach(track => {
           poolTracks.push({
             ...track,
             audioUrl: track.audio_url,
@@ -808,10 +814,19 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
         });
       }
     }
-    // 3. السياق الثالث: تشغيل شامل من كل مجلدات وألبومات وقصائد القسم النشط
+    // 3. السياق الثالث: تشغيل من قسم الأدعية إذا كانت الفئة النشطة هي الأدعية
+    else if (isSupplicationCategory(activeCategory)) {
+      supplicationsTracks.forEach(track => {
+        poolTracks.push({
+          ...track,
+          audioUrl: track.audio_url,
+          album: track.album || "الأدعية والمناجاة"
+        });
+      });
+    }
+    // 4. السياق الرابع: تشغيل شامل من كل العناصر المفلترة داخل الفئة النشطة فقط
     else {
-      const categoryAlbums = liveAlbums.filter(album => album.category === activeCategory);
-      categoryAlbums.forEach(album => {
+      filteredAndSortedAlbums.forEach(album => {
         if (album.tracks) {
           album.tracks.forEach(track => {
             poolTracks.push({
@@ -823,25 +838,19 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
         }
       });
 
-      const categoryFolderIds = liveFolders
-        .filter(f => f.category === activeCategory)
-        .map(f => f.id);
-
-      standaloneQasaed.forEach(track => {
-        if (track.folder_id && categoryFolderIds.includes(Number(track.folder_id))) {
-          poolTracks.push({
-            ...track,
-            audioUrl: track.audio_url,
-            album: "قصيدة جديدة"
-          });
-        }
+      globalMatchingTracks.forEach(track => {
+        poolTracks.push({
+          ...track,
+          audioUrl: track.audio_url,
+          album: getParentContextBadge(track) || "قصيدة"
+        });
       });
     }
 
     if (poolTracks.length === 0) {
       toast({
         title: "تنبيه",
-        description: "لا توجد قصائد متوفرة في السياق الحالي للتشغيل العشوائي",
+        description: "لا توجد قصائد متوفرة في الفئة الحالية للتشغيل العشوائي",
       });
       return;
     }
@@ -856,6 +865,10 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
     const firstTrack = shuffledTracks[0];
     incrementTrackStat(firstTrack.id, "listens");
     onPlay(firstTrack, shuffledTracks);
+    toast({
+      title: "تشغيل عشوائي",
+      description: `جاري تشغيل: ${firstTrack.title}`,
+    });
   };
 
   /**
@@ -875,6 +888,32 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
       supplications: "الأدعية"
     };
     return `تشغيل عشوائي قسم (${catNames[activeCategory] || "المكتبة"})`;
+  };
+
+  /**
+   * واجهة بديلة (Fallback UI) عند عدم توفر نتائج في الفئة أو البحث
+   */
+  const renderEmptyFallbackUI = (categoryKey: string) => {
+    const categoryLabels: Record<string, string> = {
+      sorrow: "الأحزان",
+      joy: "الأفراح",
+      supplications: "الأدعية والمناجاة",
+    };
+    const catName = categoryLabels[categoryKey] || "هذه الفئة";
+
+    return (
+      <EmptyState
+        icon={searchQuery ? SearchX : FolderX}
+        title={searchQuery ? "لم يتم العثور على نتائج" : "لا توجد صوتيات متوفرة"}
+        description={
+          searchQuery
+            ? `لا توجد قصائد أو ألبومات تطابق "${searchQuery}" في قسم ${catName}.`
+            : `لا تتوفر صوتيات في قسم ${catName} حالياً.`
+        }
+        actionLabel={searchQuery ? "مسح تصفية البحث" : undefined}
+        onAction={searchQuery ? () => setSearchQuery("") : undefined}
+      />
+    );
   };
 
   /**
@@ -1025,12 +1064,8 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
    */
   const renderStandaloneTracks = (tracksList: Track[], albumName = "الأدعية") => {
     if (tracksList.length === 0) {
-      return (
-        <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
-          <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
-          <p className="text-sm tracking-widest">لا توجد صوتيات تطابق نتائج البحث في هذا القسم</p>
-        </div>
-      );
+      if (visibleFolders.length > 0) return null;
+      return renderEmptyFallbackUI(activeCategory);
     }
 
     if (viewMode === "grid") {
@@ -1135,24 +1170,24 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                       <DropdownMenuContent
                         align="end"
                         sideOffset={8}
-                        className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-44 rounded-[2rem] p-2 z-[200] animate-in fade-in zoom-in-95 duration-300 overflow-hidden relative"
+                        className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-32 p-1 rounded-[1.2rem] sm:w-44 sm:rounded-[2rem] sm:p-2 z-[200] animate-in fade-in zoom-in-95 duration-300 overflow-hidden relative"
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
 
                         <DropdownMenuItem
                           onClick={() => handleAction("download", track)}
-                          className="flex-row-reverse gap-3 rounded-[1.4rem] py-3 px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
+                          className="flex-row-reverse gap-2 sm:gap-3 rounded-[0.8rem] sm:rounded-[1.4rem] py-1.5 px-2.5 sm:py-3 sm:px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
                         >
-                          <Download className="w-4 h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
-                          <span className="text-xs font-bold tracking-wide">تحميل</span>
+                          <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
+                          <span className="text-[10px] sm:text-xs font-bold tracking-wide">تحميل</span>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
                           onClick={() => handleAction("share", track)}
-                          className="flex-row-reverse gap-3 rounded-[1.4rem] py-3 px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
+                          className="flex-row-reverse gap-2 sm:gap-3 rounded-[0.8rem] sm:rounded-[1.4rem] py-1.5 px-2.5 sm:py-3 sm:px-3.5 cursor-pointer transition-all duration-300 relative group/item text-foreground/80 hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary outline-none"
                         >
-                          <Share2 className="w-4 h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
-                          <span className="text-xs font-bold tracking-wide">مشاركة</span>
+                          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 opacity-40 group-hover/item:opacity-100 shrink-0" />
+                          <span className="text-[10px] sm:text-xs font-bold tracking-wide">مشاركة</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1442,7 +1477,17 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
             />
           </div>
 
-          <Tabs defaultValue="sorrow" value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+          <Tabs
+            defaultValue="sorrow"
+            value={activeCategory}
+            onValueChange={(val) => {
+              setActiveCategory(val);
+              setSearchQuery("");
+              setCurrentFolderView(null);
+              setExpandedAlbumId(null);
+            }}
+            className="w-full"
+          >
             <div className="flex flex-col items-center gap-6">
               {/* تبويبات الفئات */}
               <TabsList className="w-full bg-muted/50 dark:bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-primary/10 h-auto inline-flex items-center gap-1.5 overflow-hidden">
@@ -1507,7 +1552,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                   <DropdownMenuContent
                     align="center"
                     sideOffset={12}
-                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-48 rounded-[2rem] p-2 z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
+                    className="bg-popover/95 dark:bg-black/95 backdrop-blur-3xl border border-primary/20 text-right w-36 p-1.5 sm:w-48 sm:p-2 rounded-[1.2rem] sm:rounded-[2rem] z-[150] animate-in fade-in zoom-in-95 duration-300 overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
 
@@ -1522,7 +1567,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         key={option.id}
                         onClick={() => setSortBy(option.id as SortOption)}
                         className={cn(
-                          "flex-row-reverse gap-3 rounded-[1.4rem] py-3.5 px-4 cursor-pointer transition-all duration-300 relative group/item",
+                          "flex-row-reverse gap-2 sm:gap-3 rounded-[0.8rem] sm:rounded-[1.4rem] py-2 px-2.5 sm:py-3.5 sm:px-4 cursor-pointer transition-all duration-300 relative group/item",
                           "focus:bg-primary/10 focus:text-primary outline-none",
                           sortBy === option.id
                             ? "bg-primary/20 text-primary"
@@ -1530,13 +1575,13 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                         )}
                       >
                         <option.icon className={cn(
-                          "w-4 h-4 transition-all duration-300",
+                          "w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 shrink-0",
                           sortBy === option.id ? "opacity-100 scale-110" : "opacity-40 group-hover/item:opacity-100"
                         )} />
-                        <span className="text-xs font-bold tracking-wide">{option.label}</span>
+                        <span className="text-[10px] sm:text-xs font-bold tracking-wide">{option.label}</span>
 
                         {sortBy === option.id && (
-                          <div className="absolute left-4 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          <div className="absolute left-2.5 sm:left-4 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -1548,9 +1593,7 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
             {/* عرض النتائج */}
             <div className="mt-8">
               {loading ? (
-                <div className="text-center py-24 text-muted-foreground animate-pulse">
-                  <p className="text-sm tracking-widest">يرجى الإنتظار</p>
-                </div>
+                <LoadingSpinner size={36} strokeWidth={1.2} />
               ) : errorMessage ? (
                 <div className="text-center py-16 text-red-400 bg-red-950/20 border border-red-900/50 rounded-2xl p-6" dir="rtl">
                   <p className="text-sm font-bold mb-2">فشل جلب البيانات:</p>
@@ -1572,11 +1615,12 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setCurrentFolderView(null)}
-                        className="relative group overflow-hidden flex items-center justify-center gap-2 px-5 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary text-xs font-bold cursor-pointer"
+                        className="relative group overflow-hidden flex items-center justify-center w-10 h-10 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:bg-primary/10 text-primary cursor-pointer shrink-0"
+                        title="رجوع"
+                        aria-label="رجوع"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                        <ArrowRight className="w-3.5 h-3.5 relative z-10" />
-                        <span className="relative z-10">رجوع</span>
+                        <ArrowRight className="w-4 h-4 relative z-10 transition-transform group-hover:-translate-x-0.5" />
                       </button>
                       <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 flex items-center justify-center">
@@ -1597,10 +1641,17 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
                     (() => {
                       if (inFolderAlbums.length === 0) {
                         return (
-                          <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
-                            <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                            <p className="text-sm tracking-widest">لا توجد ألبومات تطابق نتائج البحث في هذا المجلد</p>
-                          </div>
+                          <EmptyState
+                            icon={searchQuery ? SearchX : FolderX}
+                            title={searchQuery ? "لم يتم العثور على نتائج" : "المجلد فارغ"}
+                            description={
+                              searchQuery
+                                ? `لا توجد ألبومات تطابق "${searchQuery}" في هذا المجلد.`
+                                : "لا توجد ألبومات مضافة في هذا المجلد حالياً."
+                            }
+                            actionLabel={searchQuery ? "مسح تصفية البحث" : undefined}
+                            onAction={searchQuery ? () => setSearchQuery("") : undefined}
+                          />
                         );
                       }
                       return (
@@ -1695,35 +1746,47 @@ export function AudioLibrary({ onPlay, onAddToQueue }: AudioLibraryProps) {
 
                   {/* ── Album Tabs Content ── */}
                   <TabsContent value="sorrow" className="mt-0 focus-visible:outline-none">
-                    <AlbumGrid
-                      albums={visibleAlbums}
-                      folders={liveFolders}
-                      onPlay={onPlay}
-                      onAction={handleAction}
-                      onIncrementStat={incrementTrackStat}
-                      expandedAlbumId={expandedAlbumId}
-                      setExpandedAlbumId={setExpandedAlbumId}
-                      viewMode={viewMode}
-                      highlightedTrackId={highlightedTrackId}
-                      highlightedAlbumId={highlightedAlbumId}
-                    />
+                    {visibleAlbums.length > 0 ? (
+                      <AlbumGrid
+                        albums={visibleAlbums}
+                        folders={visibleFolders}
+                        onPlay={onPlay}
+                        onAction={handleAction}
+                        onIncrementStat={incrementTrackStat}
+                        expandedAlbumId={expandedAlbumId}
+                        setExpandedAlbumId={setExpandedAlbumId}
+                        viewMode={viewMode}
+                        highlightedTrackId={highlightedTrackId}
+                        highlightedAlbumId={highlightedAlbumId}
+                      />
+                    ) : (visibleFolders.length === 0 && globalMatchingTracks.length === 0) ? (
+                      renderEmptyFallbackUI("sorrow")
+                    ) : null}
                   </TabsContent>
                   <TabsContent value="joy" className="mt-0 focus-visible:outline-none">
-                    <AlbumGrid
-                      albums={visibleAlbums}
-                      folders={liveFolders}
-                      onPlay={onPlay}
-                      onAction={handleAction}
-                      onIncrementStat={incrementTrackStat}
-                      expandedAlbumId={expandedAlbumId}
-                      setExpandedAlbumId={setExpandedAlbumId}
-                      viewMode={viewMode}
-                      highlightedTrackId={highlightedTrackId}
-                      highlightedAlbumId={highlightedAlbumId}
-                    />
+                    {visibleAlbums.length > 0 ? (
+                      <AlbumGrid
+                        albums={visibleAlbums}
+                        folders={visibleFolders}
+                        onPlay={onPlay}
+                        onAction={handleAction}
+                        onIncrementStat={incrementTrackStat}
+                        expandedAlbumId={expandedAlbumId}
+                        setExpandedAlbumId={setExpandedAlbumId}
+                        viewMode={viewMode}
+                        highlightedTrackId={highlightedTrackId}
+                        highlightedAlbumId={highlightedAlbumId}
+                      />
+                    ) : (visibleFolders.length === 0 && globalMatchingTracks.length === 0) ? (
+                      renderEmptyFallbackUI("joy")
+                    ) : null}
                   </TabsContent>
                   <TabsContent value="supplications" className="mt-0 focus-visible:outline-none">
-                    {renderStandaloneTracks(supplicationsTracks, "الأدعية")}
+                    {supplicationsTracks.length > 0 ? (
+                      renderStandaloneTracks(supplicationsTracks, "الأدعية")
+                    ) : (visibleFolders.length === 0) ? (
+                      renderEmptyFallbackUI("supplications")
+                    ) : null}
                   </TabsContent>
 
                   {/* Show All Button */}
@@ -1854,11 +1917,15 @@ function AlbumGrid({
   }, [viewMode, expandedAlbumId]);
 
   if (albums.length === 0) {
+    if (folders && folders.length > 0) {
+      return null;
+    }
     return (
-      <div className="text-center py-24 text-foreground/20 animate-in fade-in duration-700">
-        <Music className="w-12 h-12 mx-auto mb-4 opacity-10" />
-        <p className="text-sm tracking-widest">لا توجد نتائج</p>
-      </div>
+      <EmptyState
+        icon={FolderX}
+        title="لا توجد ألبومات متوفرة"
+        description="يرجى تغيير الفئة أو تعديل كلمة البحث"
+      />
     );
   }
 
